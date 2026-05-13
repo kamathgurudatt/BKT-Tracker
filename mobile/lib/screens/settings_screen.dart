@@ -56,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             controller: apiBaseUrl,
             decoration: const InputDecoration(
               labelText: 'Backend API URL',
-              helperText: 'Use your server/computer IP on a real phone; 10.0.2.2 only works in Android emulator.',
+              helperText: 'Use your hosted HTTPS backend URL (production/staging), or developer override URL.',
               prefixIcon: Icon(Icons.dns_outlined),
             ),
             keyboardType: TextInputType.url,
