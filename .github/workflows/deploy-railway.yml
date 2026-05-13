@@ -4,18 +4,48 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+
       - name: Install Railway CLI
         run: npm install -g @railway/cli
+
+      - name: Validate Railway token
+        id: railway_auth
+        shell: bash
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "${RAILWAY_TOKEN}" ]; then
+            echo "authenticated=false" >> "$GITHUB_OUTPUT"
+            echo "RAILWAY_TOKEN is missing; skipping deploy."
+            exit 0
+          fi
+          if railway whoami >/dev/null 2>&1; then
+            echo "authenticated=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "authenticated=false" >> "$GITHUB_OUTPUT"
+            echo "RAILWAY_TOKEN is invalid or lacks access; skipping deploy."
+          fi
+
       - name: Deploy API service
+        if: steps.railway_auth.outputs.authenticated == 'true'
         run: railway up --service api
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
       - name: Deploy Worker service
+        if: steps.railway_auth.outputs.authenticated == 'true'
         run: railway up --service worker
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      - name: Deployment skipped notice
+        if: steps.railway_auth.outputs.authenticated != 'true'
+        run: echo "Skipped Railway deploy because token is missing/invalid."
