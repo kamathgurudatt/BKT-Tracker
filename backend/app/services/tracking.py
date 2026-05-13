@@ -229,6 +229,22 @@ class TrackingService:
                 {"detected_at": ev.detected_at, "change_type": ev.change_type, "previous_hash": ev.previous_hash, "latest_hash": ev.latest_hash}
                 for ev in recent_change_events
             ],
+            "endpoint_audit": [
+                {
+                    "purpose": "blinkit_search",
+                    "method": "GET",
+                    "url_template": settings.blinkit_search_url_template,
+                    "location_params": ["pincode", "lat", "lon"],
+                    "auth_or_session": "No explicit auth/session handling in client; endpoint template must already be publicly callable/authorized.",
+                },
+                {
+                    "purpose": "blinkit_product",
+                    "method": "GET",
+                    "url_template": settings.blinkit_product_url_template,
+                    "location_params": ["pincode", "lat", "lon"],
+                    "auth_or_session": "No explicit auth/session handling in client; endpoint template must already be publicly callable/authorized.",
+                },
+            ],
             "last_detected_inventory_change": latest_change.latest_payload if latest_change else None,
             "last_detected_change_type": latest_change.change_type if latest_change else None,
             "failed_requests": [{"endpoint": row.endpoint, "error": row.error, "fetched_at": row.fetched_at} for row in failed_requests],

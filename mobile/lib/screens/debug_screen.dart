@@ -65,7 +65,7 @@ class _DebugScreenState extends State<DebugScreen> {
     const encoder = JsonEncoder.withIndent('  ');
     final debugData = data;
     return SentinelScaffold(
-      title: 'Debug Monitoring Mode',
+      title: 'Raw Inventory Inspector',
       child: ListView(
         children: [
           FilledButton.icon(
@@ -74,7 +74,7 @@ class _DebugScreenState extends State<DebugScreen> {
             label: const Text('Refresh live debug state'),
           ),
           const SizedBox(height: 12),
-          const Text('Live Verification Mode', style: TextStyle(fontWeight: FontWeight.bold)),
+          const Text('Live Verification Test', style: TextStyle(fontWeight: FontWeight.bold)),
           if (loading) const LinearProgressIndicator(),
           if (error != null)
             SelectableText(
@@ -109,6 +109,8 @@ class _DebugScreenState extends State<DebugScreen> {
             SelectableText(encoder.convert(debugData['polling_proof'] ?? {})),
             const Text('Inventory change proof'),
             SelectableText(encoder.convert(debugData['inventory_change_proof'] ?? [])),
+            const Text('Endpoint audit'),
+            SelectableText(encoder.convert(debugData['endpoint_audit'] ?? [])),
             const Text('Failed requests'),
             SelectableText(encoder.convert(debugData['failed_requests'] ?? [])),
           ],
@@ -121,7 +123,36 @@ class _DebugScreenState extends State<DebugScreen> {
             child: const Text('Run test mode'),
           ),
           if (testModeData != null) ...[
-            const Text('Old vs new payload diff'),
+            const Text('Raw vs parsed output (side-by-side)'),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Raw payload rounds'),
+                      SelectableText(encoder.convert(testModeData!['rounds'] ?? [])),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Parsed fields (latest round)'),
+                      SelectableText(
+                        encoder.convert(((testModeData!['rounds'] as List).isNotEmpty)
+                            ? (((testModeData!['rounds'] as List).last as Map<String, dynamic>)['payload'] ?? {})
+                            : {}),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Text('Inventory diffs'),
             SelectableText(encoder.convert(testModeData)),
           ],
         ],

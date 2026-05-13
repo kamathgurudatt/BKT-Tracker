@@ -138,6 +138,7 @@ class DebugState(BaseModel):
     location_context: dict = Field(default_factory=dict)
     polling_proof: dict = Field(default_factory=dict)
     inventory_change_proof: list[dict] = Field(default_factory=list)
+    endpoint_audit: list[dict] = Field(default_factory=list)
 
 
 class DebugTestModeRequest(BaseModel):
