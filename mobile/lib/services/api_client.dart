@@ -6,7 +6,14 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
-const defaultApiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8000/api/v1');
+const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://YOUR_BACKEND.onrender.com/api/v1');
+const _stagingApiBaseUrl = String.fromEnvironment('API_BASE_URL_STAGING', defaultValue: 'https://YOUR_STAGING_BACKEND.onrender.com/api/v1');
+const _apiEnv = String.fromEnvironment('API_ENV', defaultValue: 'prod');
+
+String _defaultApiBaseUrl() {
+  if (_apiEnv == 'staging') return _stagingApiBaseUrl;
+  return _prodApiBaseUrl;
+}
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});
@@ -19,7 +26,7 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  ApiClient({String baseUrl = defaultApiBaseUrl}) : baseUrl = normalizeBaseUrl(baseUrl);
+  ApiClient({String? baseUrl}) : baseUrl = normalizeBaseUrl(baseUrl ?? _defaultApiBaseUrl());
 
   String baseUrl;
   String? token;
@@ -59,9 +66,13 @@ class ApiClient {
 
   Future<Map<String, dynamic>> debugMonitoring() async {
     final response = await _send(() => http.get(Uri.parse('$baseUrl/debug/monitoring'), headers: _headers));
-    if (response is! Map<String, dynamic>) {
-      throw const ApiException('Debug response was not an object.');
-    }
+    if (response is! Map<String, dynamic>) throw const ApiException('Debug response was not an object.');
+    return response;
+  }
+
+  Future<Map<String, dynamic>> debugTestMode({required int trackedProductId, required int locationId, int polls = 2}) async {
+    final response = await _send(() => http.post(Uri.parse('$baseUrl/debug/test-mode'), headers: _headers, body: jsonEncode({'tracked_product_id': trackedProductId, 'location_id': locationId, 'polls': polls})));
+    if (response is! Map<String, dynamic>) throw const ApiException('Debug test mode response was not an object.');
     return response;
   }
 
@@ -69,18 +80,14 @@ class ApiClient {
     try {
       final response = await request().timeout(const Duration(seconds: 20));
       final body = response.body.isEmpty ? null : jsonDecode(response.body);
-      if (response.statusCode >= 400) {
-        throw ApiException(_extractError(body, response.statusCode), statusCode: response.statusCode);
-      }
+      if (response.statusCode >= 400) throw ApiException(_extractError(body, response.statusCode), statusCode: response.statusCode);
       return body;
     } on ApiException {
       rethrow;
     } on TimeoutException {
-      throw ApiException('Request timed out while connecting to $baseUrl. Confirm the backend is running and reachable from this device.');
+      throw ApiException('Request timed out while connecting to $baseUrl. Confirm backend uptime and DNS.');
     } on SocketException {
-      throw ApiException(
-        'Cannot connect to backend at $baseUrl. If this is a real Android phone, 10.0.2.2 will not work; use your computer/server IP such as http://192.168.1.10:8000/api/v1, or deploy the backend and enter that URL.',
-      );
+      throw ApiException('Cannot connect to backend at $baseUrl. Check production/staging URL or set developer override URL in settings.');
     } on FormatException {
       throw const ApiException('Server returned an invalid response. Please check backend logs.');
     } catch (error) {
@@ -92,9 +99,7 @@ class ApiClient {
     if (body is Map<String, dynamic>) {
       final detail = body['detail'];
       if (detail is String && detail.isNotEmpty) return detail;
-      if (detail is List && detail.isNotEmpty) {
-        return detail.map((item) => item is Map<String, dynamic> ? (item['msg'] ?? item).toString() : item.toString()).join('\n');
-      }
+      if (detail is List && detail.isNotEmpty) return detail.map((item) => item is Map<String, dynamic> ? (item['msg'] ?? item).toString() : item.toString()).join('\n');
       final message = body['message'];
       if (message is String && message.isNotEmpty) return message;
     }
