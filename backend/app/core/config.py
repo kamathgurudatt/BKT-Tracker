@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://sentinel:sentinel@postgres:5432/sentinel"
     redis_url: str = "redis://redis:6379/0"
     cors_origins: list[AnyHttpUrl] | list[str] = ["https://example.com"]
-    force_https: bool = True
+    force_https: bool = False
     trust_proxy_headers: bool = True
     bootstrap_mode: bool = False
     dependency_retry_interval_seconds: int = 20
