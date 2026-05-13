@@ -128,7 +128,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           controller: apiBaseUrl,
                           decoration: const InputDecoration(
                             labelText: 'Backend API URL',
-                            helperText: 'Physical phone: use your computer/server IP, not 10.0.2.2',
+                            helperText: 'Use your hosted HTTPS backend URL (or developer override).',
                             prefixIcon: Icon(Icons.dns_outlined),
                           ),
                           keyboardType: TextInputType.url,
