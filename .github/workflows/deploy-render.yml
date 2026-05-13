@@ -1,0 +1,21 @@
+name: Deploy Render
+on:
+  push:
+    branches: [ main ]
+workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger Render deploy hook (API)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_API != '' }}
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_API"
+        env:
+          RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
+      - name: Trigger Render deploy hook (Worker)
+        if: ${{ secrets.RENDER_DEPLOY_HOOK_WORKER != '' }}
+        run: curl -fsS -X POST "$RENDER_DEPLOY_HOOK_WORKER"
+        env:
+          RENDER_DEPLOY_HOOK_WORKER: ${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}
