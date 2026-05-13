@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     cors_origins: list[AnyHttpUrl] | list[str] = ["https://example.com"]
     force_https: bool = True
     trust_proxy_headers: bool = True
+    bootstrap_mode: bool = False
+    dependency_retry_interval_seconds: int = 20
     provider_base_delay_seconds: float = 1.5
     provider_max_requests_per_minute: int = 30
     provider_timeout_seconds: int = 12
