@@ -4,6 +4,7 @@ import 'core/app_state.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
+import 'screens/debug_screen.dart';
 import 'screens/locations_screen.dart';
 import 'screens/notifications_screen.dart';
 import 'screens/product_detail_screen.dart';
@@ -41,6 +42,7 @@ class SentinelApp extends StatelessWidget {
         '/analytics': (_) => const AnalyticsScreen(),
         '/notifications': (_) => const NotificationsScreen(),
         '/settings': (_) => const SettingsScreen(),
+        '/debug': (_) => const DebugScreen(),
       },
     );
   }

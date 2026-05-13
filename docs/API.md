@@ -31,3 +31,8 @@ Base URL: `/api/v1`
 
 - `GET /admin/stats`
 - `POST /admin/jobs/{job_id}/pause`
+
+
+## Debug Monitoring Mode
+
+- `GET /debug/monitoring` returns last live provider response timestamp, endpoint, raw response excerpt, latency, location, request status, headers used, last detected inventory change, and failed request logs.

@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     provider_base_delay_seconds: float = 1.5
     provider_max_requests_per_minute: int = 30
     provider_timeout_seconds: int = 12
+    blinkit_search_url_template: str | None = None
+    blinkit_product_url_template: str | None = None
+    live_provider_required: bool = True
+    stock_confirmation_delay_seconds: float = 2.0
+    stock_response_max_age_seconds: int = 120
+    duplicate_alert_window_seconds: int = 1800
     default_poll_interval_seconds: int = 900
     min_poll_interval_seconds: int = 300
     fcm_credentials_path: str | None = None

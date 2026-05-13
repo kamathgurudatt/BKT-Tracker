@@ -118,3 +118,15 @@ class AnalyticsPoint(BaseModel):
     label: str
     value: float
     observed_at: datetime | None = None
+
+class DebugState(BaseModel):
+    last_api_response_timestamp: datetime | None = None
+    source_endpoint_called: str | None = None
+    raw_stock_response: dict | None = None
+    response_latency_ms: int | None = None
+    location_id: int | None = None
+    request_status: str | None = None
+    request_headers_used: dict | None = None
+    last_detected_inventory_change: dict | None = None
+    last_detected_change_type: str | None = None
+    failed_requests: list[dict] = Field(default_factory=list)

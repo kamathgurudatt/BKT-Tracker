@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,7 +15,10 @@ service = TrackingService()
 @router.get("/search", response_model=list[ProductSearchResult])
 async def search_products(q: str = Query(min_length=2), provider: str = "blinkit", location_id: int | None = None, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     location = await db.get(Location, location_id) if location_id else None
-    results = await service.search_products(provider, q, location)
+    try:
+        results = await service.search_products(provider, q, location)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
     return results
 
 

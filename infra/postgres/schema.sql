@@ -122,3 +122,39 @@ CREATE TABLE monitoring_jobs (
   CONSTRAINT uq_monitoring_product_location UNIQUE (tracked_product_id, location_id)
 );
 CREATE INDEX ix_monitoring_jobs_due ON monitoring_jobs(status, next_run_at);
+
+CREATE TYPE requeststatus AS ENUM ('SUCCESS', 'FAILURE');
+
+CREATE TABLE provider_request_logs (
+  id BIGSERIAL PRIMARY KEY,
+  provider VARCHAR(40) NOT NULL,
+  endpoint TEXT NOT NULL,
+  location_id BIGINT REFERENCES locations(id) ON DELETE SET NULL,
+  tracked_product_id BIGINT REFERENCES tracked_products(id) ON DELETE SET NULL,
+  status requeststatus NOT NULL,
+  latency_ms INTEGER,
+  request_headers JSONB NOT NULL DEFAULT '{}',
+  response_excerpt JSONB NOT NULL DEFAULT '{}',
+  error TEXT,
+  fetched_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_provider_request_logs_provider ON provider_request_logs(provider);
+CREATE INDEX ix_provider_logs_product_location_time ON provider_request_logs(tracked_product_id, location_id, fetched_at DESC);
+
+CREATE TABLE inventory_change_events (
+  id BIGSERIAL PRIMARY KEY,
+  tracked_product_id BIGINT NOT NULL REFERENCES tracked_products(id) ON DELETE CASCADE,
+  location_id BIGINT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
+  change_type VARCHAR(60) NOT NULL,
+  previous_hash VARCHAR(64),
+  latest_hash VARCHAR(64) NOT NULL,
+  previous_payload JSONB NOT NULL DEFAULT '{}',
+  latest_payload JSONB NOT NULL DEFAULT '{}',
+  detected_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ix_change_events_product_location_time ON inventory_change_events(tracked_product_id, location_id, detected_at DESC);
+CREATE INDEX ix_inventory_change_events_change_type ON inventory_change_events(change_type);

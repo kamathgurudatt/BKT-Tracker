@@ -2,7 +2,7 @@
 
 Blinkit Stock Sentinel is an educational Android + FastAPI project for learning how quick-commerce inventory monitoring, wishlist tracking, alerting, analytics, and safe provider integrations can be designed.
 
-> **Ethics notice:** This repository is strictly for education and research. Respect robots.txt, rate limits, and platform ToS. Do not bypass authentication, anti-bot systems, captchas, or security controls. Provider adapters default to deterministic demo data until you configure public, ToS-compliant endpoints.
+> **Ethics notice:** This repository is strictly for education and research. Respect robots.txt, rate limits, and platform ToS. Do not bypass authentication, anti-bot systems, captchas, or security controls. Provider adapters fail closed until you configure public, ToS-compliant live endpoints; the app does not fabricate product availability, price, ETA, or stock changes.
 
 ## Architecture
 
@@ -23,13 +23,14 @@ flowchart LR
 - Multi-location, wishlist, tracked product, history, analytics, and notification endpoints.
 - Async SQLAlchemy architecture with indexed PostgreSQL schema.
 - Celery scheduler and worker queue for periodic safe polling.
-- Modular providers for Blinkit, Zepto, and Instamart-style integrations with throttling, rotating headers, retries, exponential backoff, and no captcha/login bypass logic.
+- Modular live providers for Blinkit, Zepto, and Instamart-style integrations with throttling, rotating headers, retries, exponential backoff, and no captcha/login bypass logic.
+- Redis inventory-state hashing, duplicate-alert suppression, request logs, stock-change audit logs, and data-quality gates before notifications.
 - SlowAPI request throttling and environment-driven configuration.
 
 ## Mobile features
 
 - Flutter Material 3 Android app.
-- Splash, login/register, dashboard, product search, wishlist, product detail, location selector, analytics, notification center, and settings screens.
+- Splash, login/register, dashboard, product search, wishlist, product detail, location selector, analytics, notification center, settings, and developer debug monitoring screens.
 - Dark mode toggle, chart placeholder, push-notification permission declaration, and APK build path.
 
 ## Quick start
@@ -61,7 +62,7 @@ The APK will be emitted under `mobile/build/app/outputs/flutter-apk/`.
 
 ## Safe provider configuration
 
-Provider classes live under `backend/app/providers/`. The demo implementation returns sample data. If you add real public endpoints, keep:
+Provider classes live under `backend/app/providers/`. There is no mock inventory fallback. Configure live endpoint templates in `.env` before using search or monitoring. Keep:
 
 - `PROVIDER_BASE_DELAY_SECONDS` >= 1.5.
 - `PROVIDER_MAX_REQUESTS_PER_MINUTE` conservative.
@@ -71,3 +72,7 @@ Provider classes live under `backend/app/providers/`. The demo implementation re
 ## API collection
 
 Import `postman/blinkit-stock-sentinel.postman_collection.json` for common auth, search, tracking, and analytics requests.
+
+## Real data validation
+
+See `docs/REAL_DATA_VALIDATION.md` for endpoint-template configuration, debug monitoring mode, raw response verification, polling logs, change logs, Redis snapshot hashing, duplicate-alert prevention, and data-quality checks.

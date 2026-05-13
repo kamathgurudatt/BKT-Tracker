@@ -25,4 +25,10 @@ class ApiClient {
     if (response.statusCode >= 400) throw Exception('Search failed: ${response.body}');
     return (jsonDecode(response.body) as List).map((item) => Product.fromJson(item)).toList();
   }
+
+  Future<Map<String, dynamic>> debugMonitoring() async {
+    final response = await http.get(Uri.parse('$baseUrl/debug/monitoring'), headers: _headers);
+    if (response.statusCode >= 400) throw Exception('Debug fetch failed: ${response.body}');
+    return jsonDecode(response.body) as Map<String, dynamic>;
+  }
 }

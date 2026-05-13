@@ -32,6 +32,11 @@ class JobStatus(str, enum.Enum):
     FAILED = "failed"
 
 
+class RequestStatus(str, enum.Enum):
+    SUCCESS = "success"
+    FAILURE = "failure"
+
+
 class User(Base, TimestampMixin):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -135,3 +140,33 @@ class MonitoringJob(Base, TimestampMixin):
     failure_count: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text)
     __table_args__ = (UniqueConstraint("tracked_product_id", "location_id", name="uq_monitoring_product_location"),)
+
+
+class ProviderRequestLog(Base, TimestampMixin):
+    __tablename__ = "provider_request_logs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    provider: Mapped[str] = mapped_column(String(40), index=True)
+    endpoint: Mapped[str] = mapped_column(Text)
+    location_id: Mapped[int | None] = mapped_column(ForeignKey("locations.id", ondelete="SET NULL"), index=True)
+    tracked_product_id: Mapped[int | None] = mapped_column(ForeignKey("tracked_products.id", ondelete="SET NULL"), index=True)
+    status: Mapped[RequestStatus] = mapped_column(Enum(RequestStatus), index=True)
+    latency_ms: Mapped[int | None] = mapped_column(Integer)
+    request_headers: Mapped[dict] = mapped_column(JSON, default=dict)
+    response_excerpt: Mapped[dict] = mapped_column(JSON, default=dict)
+    error: Mapped[str | None] = mapped_column(Text)
+    fetched_at = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (Index("ix_provider_logs_product_location_time", "tracked_product_id", "location_id", "fetched_at"),)
+
+
+class InventoryChangeEvent(Base, TimestampMixin):
+    __tablename__ = "inventory_change_events"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tracked_product_id: Mapped[int] = mapped_column(ForeignKey("tracked_products.id", ondelete="CASCADE"), index=True)
+    location_id: Mapped[int] = mapped_column(ForeignKey("locations.id", ondelete="CASCADE"), index=True)
+    change_type: Mapped[str] = mapped_column(String(60), index=True)
+    previous_hash: Mapped[str | None] = mapped_column(String(64))
+    latest_hash: Mapped[str] = mapped_column(String(64), index=True)
+    previous_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    latest_payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    detected_at = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    __table_args__ = (Index("ix_change_events_product_location_time", "tracked_product_id", "location_id", "detected_at"),)
