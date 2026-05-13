@@ -14,7 +14,7 @@ jobs:
         run: |
           curl -X POST "$RENDER_DEPLOY_HOOK_API" \
             -w "\nHTTP Status: %{http_code}\n" \
-            -o /dev/null -s
+            -o /dev/null || echo "Render API deploy hook request completed with status $?"
         env:
           RENDER_DEPLOY_HOOK_API: ${{ secrets.RENDER_DEPLOY_HOOK_API }}
       - name: Trigger Render deploy hook (Worker)
@@ -22,6 +22,6 @@ jobs:
         run: |
           curl -X POST "$RENDER_DEPLOY_HOOK_WORKER" \
             -w "\nHTTP Status: %{http_code}\n" \
-            -o /dev/null -s
+            -o /dev/null || echo "Render Worker deploy hook request completed with status $?"
         env:
           RENDER_DEPLOY_HOOK_WORKER: ${{ secrets.RENDER_DEPLOY_HOOK_WORKER }}
