@@ -1,5 +1,32 @@
-plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
+plugins {
+    id "com.android.application"
+    id "org.jetbrains.kotlin.android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
 
-android { namespace 'com.example.blinkit_stock_sentinel'; compileSdk 35
-    defaultConfig { applicationId 'com.example.blinkit_stock_sentinel'; minSdk 23; targetSdk 35; versionCode 1; versionName '1.0.0' }
+android {
+    namespace "com.example.blinkit_stock_sentinel"
+    compileSdk flutter.compileSdkVersion
+    ndkVersion "27.0.12077973"
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    defaultConfig {
+        applicationId "com.example.blinkit_stock_sentinel"
+        minSdk 23
+        targetSdk flutter.targetSdkVersion
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+    }
+}
+
+flutter {
+    source "../.."
 }

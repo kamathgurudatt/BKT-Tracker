@@ -42,15 +42,23 @@ docker compose up --build
 
 Open API docs at <http://localhost:8000/docs>.
 
-## Build the APK
+## Build or download the APK
+
+### Download from GitHub Actions
+
+Every push, pull request, or manual workflow run builds an installable debug APK and uploads it as the `blinkit-stock-sentinel-debug-apk` artifact. Open the latest successful **CI** workflow run, scroll to **Artifacts**, and download the APK ZIP. The run summary also prints the artifact URL.
+
+If you need the APK to point at a deployed backend, set the repository variable `API_BASE_URL` before running CI. If unset, the APK uses the Android emulator default `http://10.0.2.2:8000/api/v1`.
+
+### Build locally
 
 ```bash
 cd mobile
 flutter pub get
-flutter build apk --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
+flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000/api/v1
 ```
 
-The APK will be emitted under `mobile/build/app/outputs/flutter-apk/`.
+The APK will be emitted at `mobile/build/app/outputs/flutter-apk/app-debug.apk`.
 
 ## Firebase Cloud Messaging setup
 
