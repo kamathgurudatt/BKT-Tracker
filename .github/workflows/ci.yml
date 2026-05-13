@@ -40,7 +40,7 @@ jobs:
         working-directory: mobile
         run: >-
           flutter build apk --debug
-          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://YOUR_BACKEND.onrender.com/api/v1' }}
+          --dart-define=API_BASE_URL=${{ vars.API_BASE_URL || 'https://YOUR_BACKEND.up.railway.app/api/v1' }}
       - name: Upload Android APK artifact
         id: upload_apk
         uses: actions/upload-artifact@v4

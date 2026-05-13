@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
-const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://YOUR_BACKEND.onrender.com/api/v1');
-const _stagingApiBaseUrl = String.fromEnvironment('API_BASE_URL_STAGING', defaultValue: 'https://YOUR_STAGING_BACKEND.onrender.com/api/v1');
+const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://YOUR_BACKEND.up.railway.app/api/v1');
+const _stagingApiBaseUrl = String.fromEnvironment('API_BASE_URL_STAGING', defaultValue: 'https://YOUR_STAGING_BACKEND.up.railway.app/api/v1');
 const _apiEnv = String.fromEnvironment('API_ENV', defaultValue: 'prod');
 
 String _defaultApiBaseUrl() {

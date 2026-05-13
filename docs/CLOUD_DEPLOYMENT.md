@@ -1,78 +1,72 @@
-# Cloud Deployment (Render-first)
+# Cloud Deployment (Free-tier friendly)
 
-## 1) Public backend URL
-After deploy, your API base URL is:
-- `https://<your-render-service>.onrender.com/api/v1`
+This guide uses:
+- Railway (backend API + worker)
+- Supabase (PostgreSQL)
+- Upstash (Redis)
 
-## 2) Swagger docs URL
-- `https://<your-render-service>.onrender.com/docs`
+## Public URLs
+- API base: `https://<your-railway-domain>.up.railway.app/api/v1`
+- Swagger: `https://<your-railway-domain>.up.railway.app/docs`
+- Health: `https://<your-railway-domain>.up.railway.app/health`
 
-## 3) Health check URL
-- `https://<your-render-service>.onrender.com/health`
+## 1) Railway setup
+1. Create Railway account and connect GitHub repo.
+2. Create project from repo.
+3. Railway auto-detects `railway.json` + Dockerfile.
+4. Create two Railway services from same repo:
+   - `api` with start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+   - `worker` with start command `celery -A app.workers.celery_app.celery_app worker --beat --loglevel=INFO`
 
-## 4) Render setup
-1. Create PostgreSQL: `blinkit-stock-postgres`.
-2. Create Redis (Render Redis or Upstash).
-3. Create API web service from repo using `render.yaml`.
-4. Create worker service from repo using `render.yaml`.
-5. Set required environment variables from `.env.example`.
-6. Add persistent secret file for Firebase service account and set `FCM_CREDENTIALS_PATH`.
+## 2) Supabase PostgreSQL setup
+1. Create Supabase project.
+2. Go to Project Settings → Database.
+3. Copy **Connection string (URI)**.
+4. Convert SQLAlchemy async URL:
+   `postgresql+asyncpg://postgres:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require`
+5. Set that value as `DATABASE_URL` in Railway (api + worker).
 
-## 5) Required production environment variables
-- `DATABASE_URL`
-- `REDIS_URL`
-- `SECRET_KEY`
-- `BLINKIT_SEARCH_URL_TEMPLATE`
-- `BLINKIT_PRODUCT_URL_TEMPLATE`
-- `LIVE_PROVIDER_REQUIRED=true`
-- `FCM_CREDENTIALS_PATH`
-- `CORS_ORIGINS` (JSON array)
+## 3) Upstash Redis setup
+1. Create Upstash Redis database.
+2. Copy `UPSTASH_REDIS_REST_URL` and standard TLS redis endpoint/password.
+3. Set `REDIS_URL` in Railway (api + worker):
+   `rediss://default:<password>@<host>:6379`
+
+## 4) Required env vars in Railway
+Set these in both services unless noted:
+- `ENVIRONMENT=production`
+- `APP_NAME=Blinkit Stock Sentinel`
+- `API_V1_PREFIX=/api/v1`
+- `SECRET_KEY=<strong-random-string>`
+- `DATABASE_URL=<supabase asyncpg URL>`
+- `REDIS_URL=<upstash rediss URL>`
 - `FORCE_HTTPS=true`
 - `TRUST_PROXY_HEADERS=true`
+- `CORS_ORIGINS=["https://<your-railway-domain>.up.railway.app"]`
+- `BLINKIT_SEARCH_URL_TEMPLATE=<authorized live endpoint template>`
+- `BLINKIT_PRODUCT_URL_TEMPLATE=<authorized live endpoint template>`
+- `LIVE_PROVIDER_REQUIRED=true`
+- `DEFAULT_POLL_INTERVAL_SECONDS=900`
+- `MIN_POLL_INTERVAL_SECONDS=300`
+- `STOCK_RESPONSE_MAX_AGE_SECONDS=120`
+- `DUPLICATE_ALERT_WINDOW_SECONDS=1800`
+- `FCM_CREDENTIALS_PATH=/app/secrets/firebase-service-account.json`
 
-## 6) Worker behavior
-Worker process:
-- pulls due jobs from PostgreSQL
-- polls live provider endpoints
-- logs request metadata and failures
-- records snapshots and change events
-- sends notifications after verified transitions
+## 5) HTTPS
+Railway provides TLS/HTTPS automatically via `*.up.railway.app` domains.
 
-## 7) Firebase production setup
-1. Firebase Console → project creation.
-2. Add Android app `com.example.blinkit_stock_sentinel`.
-3. Download `google-services.json` to `mobile/android/app/`.
-4. Generate service account key JSON for FCM Admin SDK.
-5. Upload key JSON to Render secret file store and map `FCM_CREDENTIALS_PATH`.
-6. Ensure device tokens are captured in user profile and persisted.
+## 6) Health checks
+`GET /health` verifies app + PostgreSQL + Redis.
+Expect `{"status":"ok","database":true,"redis":true}`.
 
-## 8) APK build instructions
-Production build:
+## 7) Android APK build
 ```bash
 cd mobile
 flutter pub get
 flutter build apk --release \
   --dart-define=API_ENV=prod \
-  --dart-define=API_BASE_URL_PROD=https://<your-render-service>.onrender.com/api/v1
-```
-Staging build:
-```bash
-flutter build apk --release \
-  --dart-define=API_ENV=staging \
-  --dart-define=API_BASE_URL_STAGING=https://<your-staging-service>.onrender.com/api/v1
+  --dart-define=API_BASE_URL_PROD=https://<your-railway-domain>.up.railway.app/api/v1
 ```
 
-## 9) Production admin credentials setup
-1. Create initial admin via DB seed/manual SQL update (`users.role='admin'`).
-2. Rotate password after first login.
-3. Keep admin JWT lifetime short and monitor access logs.
-
-## 10) CI/CD flow
-- `.github/workflows/ci.yml`: lint, compile, Flutter analyze, APK build.
-- `.github/workflows/deploy-render.yml`: triggers Render deploy hooks for API + worker on `main` push.
-
-## 11) Live inventory guarantee
-If provider templates are absent or live calls fail, APIs must surface:
-- `LIVE INVENTORY SOURCE UNAVAILABLE`
-
-No static or synthetic inventory injection is used.
+## 8) Live inventory requirements
+No mock or synthetic inventory should be served. If live source is unavailable, backend should surface `LIVE INVENTORY SOURCE UNAVAILABLE`.
