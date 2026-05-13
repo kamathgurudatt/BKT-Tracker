@@ -48,7 +48,7 @@ Open API docs at <http://localhost:8000/docs>.
 
 Every push, pull request, or manual workflow run builds an installable debug APK and uploads it as the `blinkit-stock-sentinel-debug-apk` artifact. Open the latest successful **CI** workflow run, scroll to **Artifacts**, and download the APK ZIP. The run summary also prints the artifact URL.
 
-If you need the APK to point at a deployed backend, set the repository variable `API_BASE_URL` before running CI. If unset, the APK uses the Android emulator default `http://10.0.2.2:8000/api/v1`.
+If you need the APK to point at a deployed backend, set the repository variable `API_BASE_URL` before running CI. If unset, the APK uses the Android emulator default `http://10.0.2.2:8000/api/v1`. The app also exposes **Backend API URL** on the login and settings screens so a downloaded APK can be pointed at your real backend without rebuilding. On a physical Android phone, `10.0.2.2` will not reach your computer; use your computer LAN IP, for example `http://192.168.1.10:8000/api/v1`, or a hosted HTTPS API URL.
 
 ### Build locally
 

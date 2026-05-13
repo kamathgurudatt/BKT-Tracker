@@ -6,6 +6,8 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
+const defaultApiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8000/api/v1');
+
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});
 
@@ -17,9 +19,21 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  ApiClient({this.baseUrl = const String.fromEnvironment('API_BASE_URL', defaultValue: 'http://10.0.2.2:8000/api/v1')});
-  final String baseUrl;
+  ApiClient({String baseUrl = defaultApiBaseUrl}) : baseUrl = normalizeBaseUrl(baseUrl);
+
+  String baseUrl;
   String? token;
+
+  static String normalizeBaseUrl(String value) {
+    final trimmed = value.trim();
+    if (trimmed.endsWith('/')) return trimmed.substring(0, trimmed.length - 1);
+    return trimmed;
+  }
+
+  void updateBaseUrl(String value) {
+    baseUrl = normalizeBaseUrl(value);
+    token = null;
+  }
 
   Map<String, String> get _headers => {'Content-Type': 'application/json', if (token != null) 'Authorization': 'Bearer $token'};
 
@@ -62,9 +76,11 @@ class ApiClient {
     } on ApiException {
       rethrow;
     } on TimeoutException {
-      throw const ApiException('Request timed out. Check that the backend is running and reachable.');
+      throw ApiException('Request timed out while connecting to $baseUrl. Confirm the backend is running and reachable from this device.');
     } on SocketException {
-      throw ApiException('Cannot connect to backend at $baseUrl. Start Docker Compose or update API_BASE_URL.');
+      throw ApiException(
+        'Cannot connect to backend at $baseUrl. If this is a real Android phone, 10.0.2.2 will not work; use your computer/server IP such as http://192.168.1.10:8000/api/v1, or deploy the backend and enter that URL.',
+      );
     } on FormatException {
       throw const ApiException('Server returned an invalid response. Please check backend logs.');
     } catch (error) {

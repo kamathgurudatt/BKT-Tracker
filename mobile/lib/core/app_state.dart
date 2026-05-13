@@ -1,14 +1,45 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/product.dart';
 import '../services/api_client.dart';
 
 class AppState extends ChangeNotifier {
+  AppState() {
+    unawaited(loadSettings());
+  }
+
+  static const _apiBaseUrlPreferenceKey = 'api_base_url';
+
   final ApiClient api = ApiClient();
   ThemeMode themeMode = ThemeMode.system;
   List<Product> searchResults = [];
   bool loading = false;
+  bool settingsLoaded = false;
   String? errorMessage;
+
+  String get apiBaseUrl => api.baseUrl;
+
+  Future<void> loadSettings() async {
+    final preferences = await SharedPreferences.getInstance();
+    final savedApiBaseUrl = preferences.getString(_apiBaseUrlPreferenceKey);
+    if (savedApiBaseUrl != null && savedApiBaseUrl.trim().isNotEmpty) {
+      api.updateBaseUrl(savedApiBaseUrl);
+    }
+    settingsLoaded = true;
+    notifyListeners();
+  }
+
+  Future<void> updateApiBaseUrl(String value) async {
+    final normalized = ApiClient.normalizeBaseUrl(value);
+    api.updateBaseUrl(normalized);
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_apiBaseUrlPreferenceKey, normalized);
+    errorMessage = null;
+    notifyListeners();
+  }
 
   void toggleDarkMode(bool enabled) {
     themeMode = enabled ? ThemeMode.dark : ThemeMode.light;
