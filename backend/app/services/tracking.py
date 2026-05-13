@@ -219,7 +219,7 @@ class TrackingService:
             "parsed_stock_fields": parsed_stock_fields,
             "location_context": {"id": location.id, "name": location.name, "pincode": location.pincode, "latitude": location.latitude, "longitude": location.longitude} if location else {},
             "live_data_available": bool(latest_log and latest_log.status == RequestStatus.SUCCESS),
-            "live_unavailable_message": None if latest_log and latest_log.status == RequestStatus.SUCCESS else "Live inventory source unavailable",
+            "live_unavailable_message": None if latest_log and latest_log.status == RequestStatus.SUCCESS else "LIVE INVENTORY SOURCE UNAVAILABLE",
             "polling_proof": {
                 "successful_polls_recorded": int(recent_success_count or 0),
                 "last_poll_time": latest_log.fetched_at if latest_log else None,
