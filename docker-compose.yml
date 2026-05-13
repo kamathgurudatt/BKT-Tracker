@@ -9,18 +9,48 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./infra/postgres/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sentinel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   redis:
     image: redis:7-alpine
     ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   api:
     build: ./backend
-    env_file: .env.example
-    depends_on: [postgres, redis]
+    # Copy .env.example to .env and fill in real values before running
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     ports: ["8000:8000"]
+    restart: unless-stopped
+
   worker:
     build: ./backend
     command: celery -A app.workers.celery_app.celery_app worker --beat --loglevel=INFO
-    env_file: .env.example
-    depends_on: [api, redis, postgres]
+    # Copy .env.example to .env and fill in real values before running
+    env_file: .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    restart: unless-stopped
+
 volumes:
   pgdata:

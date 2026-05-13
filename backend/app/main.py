@@ -80,12 +80,29 @@ for router in (auth.router, locations.router, wishlists.router, tracking.router,
 
 @app.get("/health")
 async def health():
-    status = getattr(app.state, "dependency_status", {"database": "unavailable", "redis": "unavailable", "status": "degraded"})
-    body = {
-        "status": status["status"],
-        "service": settings.app_name,
-        "bootstrap_mode": settings.bootstrap_mode,
-        "database": status["database"],
-        "redis": status["redis"],
-    }
-    return JSONResponse(status_code=200, content=body)
+    return {"status": "ok"}
+
+
+@app.get("/ready")
+async def ready():
+    checks: dict[str, str] = {}
+    try:
+        if AsyncSessionLocal is None:
+            raise RuntimeError("Database session factory unavailable")
+        async with AsyncSessionLocal() as db:
+            await db.execute(text("SELECT 1"))
+        checks["db"] = "ok"
+    except Exception as exc:
+        checks["db"] = str(exc)
+
+    try:
+        if redis_client is None:
+            raise RuntimeError("Redis client unavailable")
+        await redis_client.ping()
+        checks["redis"] = "ok"
+    except Exception as exc:
+        checks["redis"] = str(exc)
+
+    all_ok = all(value == "ok" for value in checks.values())
+    body = {"status": "ready" if all_ok else "degraded", **checks}
+    return JSONResponse(content=body, status_code=200 if all_ok else 503)

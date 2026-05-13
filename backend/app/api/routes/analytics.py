@@ -12,7 +12,18 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 
 @router.get("/availability", response_model=list[AnalyticsPoint])
 async def availability(user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    rows = (await db.execute(select(TrackedProduct.name, func.count(InventorySnapshot.id)).join(InventorySnapshot).where(TrackedProduct.user_id == user.id, InventorySnapshot.status == StockStatus.IN_STOCK).group_by(TrackedProduct.name).limit(20))).all()
+    rows = (
+        (
+            await db.execute(
+                select(TrackedProduct.name, func.count(InventorySnapshot.id))
+                .join(InventorySnapshot)
+                .where(TrackedProduct.user_id == user.id, InventorySnapshot.status == StockStatus.IN_STOCK)
+                .group_by(TrackedProduct.name)
+                .limit(20)
+            )
+        )
+        .all()
+    )
     return [AnalyticsPoint(label=name, value=float(count)) for name, count in rows]
 
 
