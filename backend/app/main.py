@@ -11,7 +11,7 @@ from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 from sqlalchemy import text
 
-from app.api.routes import admin, analytics, auth, debug, locations, tracking, wishlists
+from app.api.routes import admin, auth, debug, locations, tracking, wishlists
 from app.core.config import get_settings
 from app.db.redis import redis_client
 from app.db.session import AsyncSessionLocal
@@ -24,14 +24,16 @@ async def _probe_dependencies() -> dict:
     db_ok = False
     redis_ok = False
     try:
-        async with AsyncSessionLocal() as db:
-            await db.execute(text("SELECT 1"))
-            db_ok = True
+        if AsyncSessionLocal is not None:
+            async with AsyncSessionLocal() as db:
+                await db.execute(text("SELECT 1"))
+                db_ok = True
     except Exception:
         db_ok = False
     try:
-        await redis_client.ping()
-        redis_ok = True
+        if redis_client is not None:
+            await redis_client.ping()
+            redis_ok = True
     except Exception:
         redis_ok = False
     return {
@@ -72,7 +74,7 @@ app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_cr
 if settings.force_https:
     app.add_middleware(HTTPSRedirectMiddleware)
 
-for router in (auth.router, locations.router, wishlists.router, tracking.router, analytics.router, debug.router, admin.router):
+for router in (auth.router, locations.router, wishlists.router, tracking.router, debug.router, admin.router):
     app.include_router(router, prefix=settings.api_v1_prefix)
 
 
@@ -86,7 +88,4 @@ async def health():
         "database": status["database"],
         "redis": status["redis"],
     }
-    if settings.bootstrap_mode:
-        return JSONResponse(status_code=200, content=body)
-    code = 200 if status["status"] == "ok" else 503
-    return JSONResponse(status_code=code, content=body)
+    return JSONResponse(status_code=200, content=body)

@@ -6,19 +6,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Copy whatever Railway build context provides (repo root or backend root)
 COPY . /src
 
-RUN set -eux; \
+RUN set -eu; \
     if [ -f /src/requirements.txt ] && [ -d /src/app ]; then \
         REQUIREMENTS_PATH=/src/requirements.txt; APP_PATH=/src/app; \
     elif [ -f /src/backend/requirements.txt ] && [ -d /src/backend/app ]; then \
         REQUIREMENTS_PATH=/src/backend/requirements.txt; APP_PATH=/src/backend/app; \
     else \
-        echo "Could not find requirements/app. Expected either /src/{requirements.txt,app/} or /src/backend/{requirements.txt,app/}."; \
+        echo "Expected requirements/app in either /src or /src/backend"; \
         exit 1; \
     fi; \
-    pip install --upgrade pip; \
     pip install -r "$REQUIREMENTS_PATH"; \
     cp -R "$APP_PATH" /app/app
 
