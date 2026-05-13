@@ -130,3 +130,24 @@ class DebugState(BaseModel):
     last_detected_inventory_change: dict | None = None
     last_detected_change_type: str | None = None
     failed_requests: list[dict] = Field(default_factory=list)
+    live_data_available: bool = False
+    live_unavailable_message: str | None = None
+    response_headers: dict = Field(default_factory=dict)
+    response_timestamp: datetime | None = None
+    parsed_stock_fields: dict = Field(default_factory=dict)
+    location_context: dict = Field(default_factory=dict)
+    polling_proof: dict = Field(default_factory=dict)
+    inventory_change_proof: list[dict] = Field(default_factory=list)
+
+
+class DebugTestModeRequest(BaseModel):
+    tracked_product_id: int
+    location_id: int
+    polls: int = Field(default=2, ge=1, le=10)
+
+
+class DebugTestModeResult(BaseModel):
+    tracked_product_id: int
+    location_id: int
+    poll_interval_seconds: int = 15
+    rounds: list[dict] = Field(default_factory=list)

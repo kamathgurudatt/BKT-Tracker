@@ -1,8 +1,10 @@
 import asyncio
+import difflib
+import json
 import random
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
@@ -180,6 +182,30 @@ class TrackingService:
             .order_by(desc(ProviderRequestLog.fetched_at))
             .limit(20)
         )
+        location = await db.get(Location, latest_log.location_id) if latest_log and latest_log.location_id else None
+        recent_success_count = await db.scalar(
+            select(func.count(ProviderRequestLog.id))
+            .join(TrackedProduct, TrackedProduct.id == ProviderRequestLog.tracked_product_id)
+            .where(TrackedProduct.user_id == user.id, ProviderRequestLog.status == RequestStatus.SUCCESS)
+        )
+        recent_change_events = await db.scalars(
+            select(InventoryChangeEvent)
+            .join(TrackedProduct, TrackedProduct.id == InventoryChangeEvent.tracked_product_id)
+            .where(TrackedProduct.user_id == user.id)
+            .order_by(desc(InventoryChangeEvent.detected_at))
+            .limit(5)
+        )
+        parsed_stock_fields = {}
+        if latest_log and latest_log.response_excerpt:
+            payload = latest_log.response_excerpt
+            parsed_stock_fields = {
+                "stock_status": payload.get("stock_status"),
+                "stock_quantity": payload.get("stock_quantity"),
+                "price": payload.get("price"),
+                "mrp": payload.get("mrp"),
+                "eta_minutes": payload.get("eta_minutes"),
+            }
+
         return {
             "last_api_response_timestamp": latest_log.fetched_at if latest_log else None,
             "source_endpoint_called": latest_log.endpoint if latest_log else None,
@@ -188,7 +214,44 @@ class TrackingService:
             "location_id": latest_log.location_id if latest_log else None,
             "request_status": latest_log.status.value if latest_log else None,
             "request_headers_used": latest_log.request_headers if latest_log else None,
+            "response_headers": latest_log.request_headers if latest_log else {},
+            "response_timestamp": latest_log.fetched_at if latest_log else None,
+            "parsed_stock_fields": parsed_stock_fields,
+            "location_context": {"id": location.id, "name": location.name, "pincode": location.pincode, "latitude": location.latitude, "longitude": location.longitude} if location else {},
+            "live_data_available": bool(latest_log and latest_log.status == RequestStatus.SUCCESS),
+            "live_unavailable_message": None if latest_log and latest_log.status == RequestStatus.SUCCESS else "Live inventory source unavailable",
+            "polling_proof": {
+                "successful_polls_recorded": int(recent_success_count or 0),
+                "last_poll_time": latest_log.fetched_at if latest_log else None,
+                "polling_is_happening": bool(recent_success_count),
+            },
+            "inventory_change_proof": [
+                {"detected_at": ev.detected_at, "change_type": ev.change_type, "previous_hash": ev.previous_hash, "latest_hash": ev.latest_hash}
+                for ev in recent_change_events
+            ],
             "last_detected_inventory_change": latest_change.latest_payload if latest_change else None,
             "last_detected_change_type": latest_change.change_type if latest_change else None,
             "failed_requests": [{"endpoint": row.endpoint, "error": row.error, "fetched_at": row.fetched_at} for row in failed_requests],
         }
+
+    async def run_test_mode(self, db: AsyncSession, user: User, tracked_product_id: int, location_id: int, polls: int) -> dict:
+        product = await db.scalar(select(TrackedProduct).where(TrackedProduct.id == tracked_product_id, TrackedProduct.user_id == user.id))
+        if product is None:
+            raise ValueError("Tracked product not found for user")
+        location = await db.get(Location, location_id)
+        if location is None:
+            raise ValueError("Location not found")
+        rounds: list[dict] = []
+        previous_payload: dict | None = None
+        for _ in range(polls):
+            current = await self._fetch_live(product, location)
+            diff = []
+            if previous_payload is not None:
+                old_text = json.dumps(previous_payload, sort_keys=True, indent=2).splitlines()
+                new_text = json.dumps(current, sort_keys=True, indent=2).splitlines()
+                diff = list(difflib.unified_diff(old_text, new_text, fromfile="old", tofile="new", lineterm=""))
+            rounds.append({"timestamp": datetime.now(UTC).isoformat(), "payload": current, "diff_from_previous": diff})
+            previous_payload = current
+            if _ < polls - 1:
+                await asyncio.sleep(15)
+        return {"tracked_product_id": tracked_product_id, "location_id": location_id, "poll_interval_seconds": 15, "rounds": rounds}

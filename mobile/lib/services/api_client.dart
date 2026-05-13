@@ -65,6 +65,20 @@ class ApiClient {
     return response;
   }
 
+  Future<Map<String, dynamic>> debugTestMode({required int trackedProductId, required int locationId, int polls = 2}) async {
+    final response = await _send(
+      () => http.post(
+        Uri.parse('$baseUrl/debug/test-mode'),
+        headers: _headers,
+        body: jsonEncode({'tracked_product_id': trackedProductId, 'location_id': locationId, 'polls': polls}),
+      ),
+    );
+    if (response is! Map<String, dynamic>) {
+      throw const ApiException('Debug test mode response was not an object.');
+    }
+    return response;
+  }
+
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     try {
       final response = await request().timeout(const Duration(seconds: 20));
