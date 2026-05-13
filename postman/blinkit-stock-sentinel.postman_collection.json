@@ -1,0 +1,10 @@
+{
+  "info": {"name": "Blinkit Stock Sentinel", "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"},
+  "variable": [{"key": "base_url", "value": "http://localhost:8000/api/v1"}, {"key": "token", "value": ""}],
+  "item": [
+    {"name": "Signup", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "url": "{{base_url}}/auth/signup", "body": {"mode": "raw", "raw": "{\"email\":\"demo@example.com\",\"password\":\"password123\",\"full_name\":\"Demo User\"}"}}},
+    {"name": "Login", "request": {"method": "POST", "header": [{"key": "Content-Type", "value": "application/json"}], "url": "{{base_url}}/auth/login", "body": {"mode": "raw", "raw": "{\"email\":\"demo@example.com\",\"password\":\"password123\"}"}}},
+    {"name": "Search", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/tracking/search?q=amul%20butter"}},
+    {"name": "Analytics", "request": {"method": "GET", "header": [{"key": "Authorization", "value": "Bearer {{token}}"}], "url": "{{base_url}}/analytics/availability"}}
+  ]
+}
