@@ -1,0 +1,3 @@
+import 'package:flutter/material.dart';
+import '../widgets/sentinel_scaffold.dart';
+class LocationsScreen extends StatelessWidget { const LocationsScreen({super.key}); @override Widget build(BuildContext context) => const SentinelScaffold(title: 'Multi-location Selector', child: Column(children: [ListTile(leading: Icon(Icons.location_on), title: Text('Andheri West'), subtitle: Text('400053 • Tracking enabled'), trailing: Switch(value: true, onChanged: null)), ListTile(leading: Icon(Icons.location_on), title: Text('Powai'), subtitle: Text('400076 • Tracking enabled'), trailing: Switch(value: true, onChanged: null))])); }

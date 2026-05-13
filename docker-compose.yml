@@ -1,0 +1,26 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sentinel
+      POSTGRES_PASSWORD: sentinel
+      POSTGRES_DB: sentinel
+    ports: ["5432:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/postgres/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  api:
+    build: ./backend
+    env_file: .env.example
+    depends_on: [postgres, redis]
+    ports: ["8000:8000"]
+  worker:
+    build: ./backend
+    command: celery -A app.workers.celery_app.celery_app worker --beat --loglevel=INFO
+    env_file: .env.example
+    depends_on: [api, redis, postgres]
+volumes:
+  pgdata:

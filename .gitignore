@@ -1,0 +1,14 @@
+.env
+*.pyc
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.venv/
+build/
+.dart_tool/
+.packages
+.flutter-plugins
+.flutter-plugins-dependencies
+mobile/android/app/google-services.json
+mobile/build/
+.DS_Store
