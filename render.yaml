@@ -1,0 +1,49 @@
+services:
+  - type: web
+    name: blinkit-stock-sentinel-api
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_V1_PREFIX
+        value: /api/v1
+      - key: FORCE_HTTPS
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: blinkit-stock-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: blinkit-stock-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+  - type: worker
+    name: blinkit-stock-sentinel-worker
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerCommand: celery -A app.workers.celery_app.celery_app worker --beat --loglevel=INFO
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: blinkit-stock-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: blinkit-stock-redis
+          property: connectionString
+      - key: SECRET_KEY
+        sync: false
+databases:
+  - name: blinkit-stock-postgres
+    databaseName: sentinel
+    user: sentinel
