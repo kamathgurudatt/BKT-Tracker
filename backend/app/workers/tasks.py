@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import UTC, datetime
 
 from sqlalchemy import select
@@ -8,6 +9,8 @@ from app.models.entities import JobStatus, MonitoringJob
 from app.services.tracking import TrackingService
 from app.workers.celery_app import celery_app
 
+logger = logging.getLogger(__name__)
+
 
 @celery_app.task
 async def _noop():
@@ -16,13 +19,23 @@ async def _noop():
 
 @celery_app.task(name="app.workers.tasks.dispatch_due_jobs")
 def dispatch_due_jobs():
-    return asyncio.run(_dispatch())
+    try:
+        return asyncio.run(_dispatch())
+    except Exception:
+        logger.warning("dispatch_skipped_database_unavailable", exc_info=True)
+        return 0
 
 
 async def _dispatch() -> int:
     count = 0
     async with AsyncSessionLocal() as db:
-        jobs = (await db.scalars(select(MonitoringJob).where(MonitoringJob.status == JobStatus.ACTIVE, MonitoringJob.next_run_at <= datetime.now(UTC)).limit(100))).all()
+        jobs = (
+            await db.scalars(
+                select(MonitoringJob)
+                .where(MonitoringJob.status == JobStatus.ACTIVE, MonitoringJob.next_run_at <= datetime.now(UTC))
+                .limit(100)
+            )
+        ).all()
         for job in jobs:
             poll_job.delay(job.id)
             count += 1

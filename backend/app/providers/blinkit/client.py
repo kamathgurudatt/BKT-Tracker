@@ -5,6 +5,8 @@ from urllib.parse import urlparse
 from app.providers.base import EthicalProviderClient, ProviderLocation
 from app.providers.parser import normalize_product, normalize_search_results
 
+logger = logging.getLogger(__name__)
+
 
 logger = logging.getLogger(__name__)
 

@@ -92,12 +92,12 @@ class BrowserProvider(EthicalProviderClient):
                 if not results:
                     logger.warning("BROWSER_PROVIDER_UNAVAILABLE", extra={"reason": "no_results", "query": keyword})
                 return results
-        except BrowserProviderUnavailable:
+        except BrowserProviderUnavailable as exc:
             logger.warning("BROWSER_PROVIDER_UNAVAILABLE")
-            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
-        except Exception:
+            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED") from exc
+        except Exception as exc:
             logger.warning("BROWSER_PROVIDER_UNAVAILABLE", exc_info=True)
-            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
+            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED") from exc
 
     async def fetch_product(self, external_product_id: str, location: ProviderLocation) -> dict[str, Any]:
         manager = await BrowserManager.get(self.settings)
@@ -113,9 +113,9 @@ class BrowserProvider(EthicalProviderClient):
                     "stock_status": "unknown",
                     "_fetched_at": datetime.now(UTC).isoformat(),
                 }
-        except BrowserProviderUnavailable:
+        except BrowserProviderUnavailable as exc:
             logger.warning("BROWSER_PROVIDER_UNAVAILABLE")
-            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
-        except Exception:
+            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED") from exc
+        except Exception as exc:
             logger.warning("BROWSER_PROVIDER_UNAVAILABLE", exc_info=True)
-            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
+            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED") from exc
