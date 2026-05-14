@@ -8,6 +8,9 @@ from app.providers.parser import normalize_product, normalize_search_results
 logger = logging.getLogger(__name__)
 
 
+logger = logging.getLogger(__name__)
+
+
 class BlinkitProvider(EthicalProviderClient):
     """Live Blinkit adapter.
 
