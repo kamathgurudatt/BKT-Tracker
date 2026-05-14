@@ -6,9 +6,10 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
+const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
 const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://web-production-bd4d.up.railway.app/api/v1');
 
-String _defaultApiBaseUrl() => _prodApiBaseUrl;
+String _defaultApiBaseUrl() => _apiBaseUrl.isNotEmpty ? _apiBaseUrl : _prodApiBaseUrl;
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});
@@ -74,7 +75,7 @@ class ApiClient {
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     try {
       final response = await request().timeout(const Duration(seconds: 20));
-      final body = response.body.isEmpty ? null : jsonDecode(response.body);
+      final body = _decodeBody(response);
       if (response.statusCode >= 400) throw ApiException(_extractError(body, response.statusCode), statusCode: response.statusCode);
       return body;
     } on ApiException {
@@ -83,10 +84,23 @@ class ApiClient {
       throw ApiException('Request timed out while connecting to $baseUrl. Confirm backend uptime and DNS.');
     } on SocketException {
       throw ApiException('Cannot connect to backend at $baseUrl. Check production/staging URL or set developer override URL in settings.');
-    } on FormatException {
-      throw const ApiException('Server returned an invalid response. Please check backend logs.');
     } catch (error) {
       throw ApiException('Unexpected error: $error');
+    }
+  }
+
+  dynamic _decodeBody(http.Response response) {
+    if (response.body.isEmpty) return null;
+    try {
+      return jsonDecode(response.body);
+    } on FormatException {
+      final contentType = response.headers['content-type'] ?? 'unknown content type';
+      final snippet = response.body.replaceAll(RegExp(r'\s+'), ' ').trim();
+      final preview = snippet.length > 160 ? '${snippet.substring(0, 160)}…' : snippet;
+      if (response.statusCode >= 400) {
+        throw ApiException('Backend returned HTTP ${response.statusCode} with $contentType instead of JSON: $preview', statusCode: response.statusCode);
+      }
+      throw ApiException('Server returned a non-JSON response with $contentType: $preview');
     }
   }
 
