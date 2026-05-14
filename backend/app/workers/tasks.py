@@ -1,8 +1,10 @@
 import asyncio
 import logging
+import socket
 from datetime import UTC, datetime
 
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.db.session import AsyncSessionLocal
 from app.models.entities import JobStatus, MonitoringJob
@@ -21,8 +23,11 @@ async def _noop():
 def dispatch_due_jobs():
     try:
         return asyncio.run(_dispatch())
-    except Exception:
-        logger.warning("dispatch_skipped_database_unavailable", exc_info=True)
+    except (socket.gaierror, SQLAlchemyError) as exc:
+        logger.warning("dispatch_skipped_database_unavailable", extra={"error": str(exc)})
+        return 0
+    except Exception as exc:
+        logger.warning("dispatch_skipped_runtime_error", extra={"error": str(exc)})
         return 0
 
 
