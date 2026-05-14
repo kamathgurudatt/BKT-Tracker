@@ -4,7 +4,6 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
@@ -81,8 +80,12 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-if settings.force_https:
-    app.add_middleware(HTTPSRedirectMiddleware)
+@app.middleware("http")
+async def conditional_https_redirect(request: Request, call_next):
+    if settings.force_https and request.url.scheme == "http" and not request.url.path.startswith("/health/"):
+        https_url = request.url.replace(scheme="https")
+        return JSONResponse(status_code=307, content={"detail": "Use HTTPS", "redirect_to": str(https_url)})
+    return await call_next(request)
 
 for router in (auth.router, locations.router, wishlists.router, tracking.router, debug.router, admin.router):
     app.include_router(router, prefix=settings.api_v1_prefix)
