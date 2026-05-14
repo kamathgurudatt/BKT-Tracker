@@ -26,7 +26,11 @@ class AppState extends ChangeNotifier {
     final preferences = await SharedPreferences.getInstance();
     final savedApiBaseUrl = preferences.getString(_apiBaseUrlPreferenceKey);
     if (savedApiBaseUrl != null && savedApiBaseUrl.trim().isNotEmpty) {
-      api.updateBaseUrl(savedApiBaseUrl);
+      final normalized = ApiClient.normalizeBaseUrl(savedApiBaseUrl);
+      api.updateBaseUrl(normalized);
+      if (normalized != savedApiBaseUrl.trim()) {
+        await preferences.setString(_apiBaseUrlPreferenceKey, normalized);
+      }
     }
     settingsLoaded = true;
     notifyListeners();
