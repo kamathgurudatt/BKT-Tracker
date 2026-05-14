@@ -6,10 +6,14 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
-const _apiBaseUrl = String.fromEnvironment('API_BASE_URL');
-const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://web-production-bd4d.up.railway.app/api/v1');
+const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: '');
 
-String _defaultApiBaseUrl() => _apiBaseUrl.isNotEmpty ? _apiBaseUrl : _prodApiBaseUrl;
+String _defaultApiBaseUrl() {
+  if (_prodApiBaseUrl.trim().isEmpty) {
+    throw const ApiException('API_BASE_URL_PROD is not configured. Provide it via --dart-define.');
+  }
+  return _prodApiBaseUrl;
+}
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});

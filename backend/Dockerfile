@@ -20,11 +20,7 @@ RUN set -eu; \
     fi; \
     pip install -r "$REQUIREMENTS_PATH"; \
     python -m playwright install chromium; \
-    cp -R "$APP_PATH" /app/app; \
-    adduser --disabled-password --gecos "" --home /home/appuser appuser; \
-    chown -R appuser:appuser /app /ms-playwright
-
-USER appuser
+    cp -R "$APP_PATH" /app/app
 
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
