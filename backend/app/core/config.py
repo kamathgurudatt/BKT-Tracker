@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
     database_url: str = "postgresql+asyncpg://sentinel:sentinel@postgres:5432/sentinel"
-    redis_url: str = "redis://redis:6379/0"
+    redis_url: str | None = None
     cors_origins: list[AnyHttpUrl] | list[str] = ["https://web-production-bd4d.up.railway.app"]
     force_https: bool = False
     trust_proxy_headers: bool = True
