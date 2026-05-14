@@ -17,9 +17,7 @@ class BlinkitProvider(EthicalProviderClient):
 
     def _format_url(self, template: str | None, *, keyword: str | None = None, external_product_id: str | None = None, location: ProviderLocation) -> str:
         if not template:
-            raise RuntimeError(
-                "Blinkit live endpoint template is not configured. Set BLINKIT_SEARCH_URL_TEMPLATE/BLINKIT_PRODUCT_URL_TEMPLATE to a public, ToS-compliant endpoint."
-            )
+            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
         return template.format(
             query=keyword or "",
             product_id=external_product_id or "",
