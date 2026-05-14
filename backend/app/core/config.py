@@ -45,15 +45,7 @@ class Settings(BaseSettings):
 
     @field_validator("secret_key", mode="before")
     @classmethod
-    def normalize_secret_key(cls, value: str | None) -> str:
-        if value is None:
-            return "change-me-in-production"
-        trimmed = value.strip()
-        return trimmed or "change-me-in-production"
-
-    @field_validator("secret_key", mode="before")
-    @classmethod
-    def normalize_secret_key(cls, value: str | None) -> str:
+    def _normalize_secret_key_value(cls, value: str | None) -> str:
         if value is None:
             return "change-me-in-production"
         trimmed = value.strip()
