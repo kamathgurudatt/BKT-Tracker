@@ -13,7 +13,7 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   static const _internalDeviceMode = bool.fromEnvironment('INTERNAL_DEVICE_MODE', defaultValue: true);
-  static const _internalEmail = String.fromEnvironment('INTERNAL_USER_EMAIL', defaultValue: 'internal.device@blinkit-sentinel.local');
+  static const _internalEmail = String.fromEnvironment('INTERNAL_USER_EMAIL', defaultValue: 'internal.device@blinkitsentinel.app');
   static const _internalPassword = String.fromEnvironment('INTERNAL_USER_PASSWORD', defaultValue: 'InternalDevice@123');
 
   final _formKey = GlobalKey<FormState>();
