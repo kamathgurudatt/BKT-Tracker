@@ -28,8 +28,15 @@ class ApiClient {
 
   static String normalizeBaseUrl(String value) {
     final trimmed = value.trim();
-    if (trimmed.endsWith('/')) return trimmed.substring(0, trimmed.length - 1);
-    return trimmed;
+    if (trimmed.isEmpty) return _defaultApiBaseUrl();
+
+    final normalized = trimmed.endsWith('/') ? trimmed.substring(0, trimmed.length - 1) : trimmed;
+    final uri = Uri.tryParse(normalized);
+    final valid = uri != null && uri.hasScheme && uri.host.isNotEmpty && (uri.scheme == 'http' || uri.scheme == 'https');
+    if (!valid) {
+      return _defaultApiBaseUrl();
+    }
+    return normalized;
   }
 
   void updateBaseUrl(String value) {
