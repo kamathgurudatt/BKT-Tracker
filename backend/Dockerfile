@@ -18,7 +18,7 @@ RUN set -eu; \
         exit 1; \
     fi; \
     pip install -r "$REQUIREMENTS_PATH"; \
-    python -m playwright install --with-deps chromium; \
+    python -m playwright install chromium; \
     cp -R "$APP_PATH" /app/app
 
 EXPOSE 8000
