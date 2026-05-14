@@ -1,9 +1,11 @@
 import logging
+import sys
 from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from celery import Celery
 
 from app.core.config import get_settings
+from app.workers.healthcheck import start_background_server
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -28,6 +30,10 @@ def _celery_redis_url(url: str) -> str:
     return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query_params), parsed.fragment))
 
 
+def _is_celery_worker_process() -> bool:
+    return any(arg == "worker" for arg in sys.argv)
+
+
 if not settings.redis_url:
     raise RuntimeError("REDIS_URL is required for Celery worker startup.")
 
@@ -38,6 +44,9 @@ celery_app.conf.beat_schedule = {
 }
 celery_app.conf.timezone = "UTC"
 celery_app.conf.broker_connection_retry_on_startup = True
+
+if _is_celery_worker_process():
+    start_background_server()
 
 logger.info("Celery initialized.")
 logger.info("Celery broker configured: %s", _mask_redis_url(celery_redis_url))
