@@ -2,7 +2,8 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1
+    PIP_NO_CACHE_DIR=1 \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
 WORKDIR /app
 
@@ -19,7 +20,11 @@ RUN set -eu; \
     fi; \
     pip install -r "$REQUIREMENTS_PATH"; \
     python -m playwright install chromium; \
-    cp -R "$APP_PATH" /app/app
+    cp -R "$APP_PATH" /app/app; \
+    adduser --disabled-password --gecos "" --home /home/appuser appuser; \
+    chown -R appuser:appuser /app /ms-playwright
+
+USER appuser
 
 EXPOSE 8000
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

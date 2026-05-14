@@ -1,4 +1,5 @@
 import logging
+import ssl
 from urllib.parse import urlsplit, urlunsplit
 
 from celery import Celery
@@ -26,6 +27,13 @@ celery_app.conf.beat_schedule = {
     "dispatch-due-monitoring-jobs": {"task": "app.workers.tasks.dispatch_due_jobs", "schedule": 60.0},
 }
 celery_app.conf.timezone = "UTC"
+celery_app.conf.broker_connection_retry_on_startup = True
+
+if settings.redis_url.startswith("rediss://"):
+    redis_ssl_options = {"ssl_cert_reqs": ssl.CERT_REQUIRED}
+    celery_app.conf.broker_use_ssl = redis_ssl_options
+    celery_app.conf.redis_backend_use_ssl = redis_ssl_options
+
 
 logger.info("Celery initialized.")
 logger.info("Celery broker configured: %s", _mask_redis_url(settings.redis_url))
