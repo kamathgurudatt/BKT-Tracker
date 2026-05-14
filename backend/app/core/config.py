@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import AnyHttpUrl, Field
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +39,17 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     email_from: str | None = None
     smtp_url: str | None = None
+    allow_internal_device_anonymous_auth: bool = False
+    internal_device_email: str = "internal.device@blinkitsentinel.app"
+    internal_device_full_name: str = "Internal Device User"
+
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def normalize_secret_key(cls, value: str | None) -> str:
+        if value is None:
+            return "change-me-in-production"
+        trimmed = value.strip()
+        return trimmed or "change-me-in-production"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
