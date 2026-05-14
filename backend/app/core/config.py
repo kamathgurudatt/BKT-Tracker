@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24
     database_url: str = "postgresql+asyncpg://sentinel:sentinel@postgres:5432/sentinel"
-    redis_url: str = "redis://redis:6379/0"
-    cors_origins: list[AnyHttpUrl] | list[str] = ["https://example.com"]
+    redis_url: str | None = None
+    cors_origins: list[AnyHttpUrl] | list[str] = ["https://web-production-bd4d.up.railway.app"]
     force_https: bool = False
     trust_proxy_headers: bool = True
     bootstrap_mode: bool = False
@@ -21,10 +21,15 @@ class Settings(BaseSettings):
     provider_base_delay_seconds: float = 1.5
     provider_max_requests_per_minute: int = 30
     provider_timeout_seconds: int = 12
+    playwright_headless: bool = True
+    playwright_timeout_seconds: int = 30
+    playwright_browser_pool_size: int = 1
+    playwright_max_retries: int = 3
+    playwright_stealth_mode: bool = True
     blinkit_search_url_template: str | None = None
     blinkit_product_url_template: str | None = None
     blinkit_headers: dict[str, str] = Field(default_factory=dict)
-    live_provider_required: bool = True
+    live_provider_required: bool = False
     stock_confirmation_delay_seconds: float = 2.0
     stock_response_max_age_seconds: int = 120
     duplicate_alert_window_seconds: int = 1800

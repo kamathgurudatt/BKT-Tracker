@@ -6,12 +6,12 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
-const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://YOUR_BACKEND.up.railway.app/api/v1');
-const _stagingApiBaseUrl = String.fromEnvironment('API_BASE_URL_STAGING', defaultValue: 'https://YOUR_STAGING_BACKEND.up.railway.app/api/v1');
-const _apiEnv = String.fromEnvironment('API_ENV', defaultValue: 'prod');
+const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: '');
 
 String _defaultApiBaseUrl() {
-  if (_apiEnv == 'staging') return _stagingApiBaseUrl;
+  if (_prodApiBaseUrl.trim().isEmpty) {
+    throw const ApiException('API_BASE_URL_PROD is not configured. Provide it via --dart-define.');
+  }
   return _prodApiBaseUrl;
 }
 
