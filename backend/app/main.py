@@ -78,13 +78,13 @@ for router in (auth.router, locations.router, wishlists.router, tracking.router,
     app.include_router(router, prefix=settings.api_v1_prefix)
 
 
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+@app.get("/health/live")
+async def health_live():
+    return {"status": "ok", "service": "alive"}
 
 
-@app.get("/ready")
-async def ready():
+@app.get("/health/ready")
+async def health_ready():
     checks: dict[str, str] = {}
     try:
         if AsyncSessionLocal is None:
@@ -103,6 +103,10 @@ async def ready():
     except Exception as exc:
         checks["redis"] = str(exc)
 
-    all_ok = all(value == "ok" for value in checks.values())
-    body = {"status": "ready" if all_ok else "degraded", **checks}
-    return JSONResponse(content=body, status_code=200 if all_ok else 503)
+    providers_ok = bool(settings.blinkit_search_url_template and settings.blinkit_product_url_template)
+    checks["providers"] = "ok" if providers_ok else "not_configured"
+
+    required_ok = checks.get("db") == "ok" and checks.get("redis") == "ok"
+    overall = "ready" if (required_ok and providers_ok) else "degraded"
+    body = {"status": overall, "dependencies": checks}
+    return JSONResponse(content=body, status_code=200 if required_ok else 503)
