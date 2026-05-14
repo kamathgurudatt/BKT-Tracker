@@ -6,14 +6,9 @@ import 'package:http/http.dart' as http;
 
 import '../models/product.dart';
 
-const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://YOUR_BACKEND.up.railway.app/api/v1');
-const _stagingApiBaseUrl = String.fromEnvironment('API_BASE_URL_STAGING', defaultValue: 'https://YOUR_STAGING_BACKEND.up.railway.app/api/v1');
-const _apiEnv = String.fromEnvironment('API_ENV', defaultValue: 'prod');
+const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://web-production-bd4d.up.railway.app/api/v1');
 
-String _defaultApiBaseUrl() {
-  if (_apiEnv == 'staging') return _stagingApiBaseUrl;
-  return _prodApiBaseUrl;
-}
+String _defaultApiBaseUrl() => _prodApiBaseUrl;
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});
