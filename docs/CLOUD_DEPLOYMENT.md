@@ -59,6 +59,9 @@ Railway provides TLS/HTTPS automatically via `*.up.railway.app` domains.
 `GET /health` verifies app + PostgreSQL + Redis.
 Expect `{"status":"ok","database":true,"redis":true}`.
 
+Railway applies the repository `railway.json` deploy healthcheck to both the `api` and `worker` services.
+The Celery worker process starts a small HTTP healthcheck listener on `$PORT` during worker startup, so the shared `/health/live` check succeeds even when Railway uses a dashboard-level worker start command instead of the repository Procfile.
+
 ## 7) Android APK build
 ```bash
 cd mobile
