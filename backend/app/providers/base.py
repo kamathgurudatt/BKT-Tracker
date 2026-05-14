@@ -35,7 +35,7 @@ class EthicalProviderClient(ABC):
     provider_name: str = "base"
     user_agents = [
         "BlinkitStockSentinel/1.0 EducationalResearch",
-        "Mozilla/5.0 (compatible; BlinkitStockSentinel/1.0; +https://example.invalid/robots)",
+        "Mozilla/5.0 (compatible; BlinkitStockSentinel/1.0; +https://web-production-bd4d.up.railway.app)",
     ]
 
     def __init__(self) -> None:
