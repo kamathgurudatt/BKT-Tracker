@@ -24,10 +24,10 @@ def dispatch_due_jobs():
     try:
         return asyncio.run(_dispatch())
     except (socket.gaierror, SQLAlchemyError) as exc:
-        logger.warning("dispatch_skipped_database_unavailable", extra={"error": str(exc)})
+        logger.warning("dispatch_skipped_database_unavailable: %s", exc)
         return 0
     except Exception as exc:
-        logger.warning("dispatch_skipped_runtime_error", extra={"error": str(exc)})
+        logger.warning("dispatch_skipped_runtime_error: %s", exc)
         return 0
 
 
