@@ -1,5 +1,6 @@
 import asyncio
 import difflib
+import logging
 import json
 import random
 from datetime import UTC, datetime, timedelta
@@ -29,6 +30,7 @@ from app.services.notifications import NotificationService
 from app.services.state_hash import inventory_hash
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 class StaleProviderResponseError(ValueError):
@@ -88,7 +90,7 @@ class TrackingService:
         inserted = await redis_client.set(key, "1", ex=settings.duplicate_alert_window_seconds, nx=True)
         return not bool(inserted)
 
-    async def poll_once(self, db: AsyncSession, job: MonitoringJob) -> InventorySnapshot:
+    async def poll_once(self, db: AsyncSession, job: MonitoringJob) -> InventorySnapshot | None:
         product = await db.get(TrackedProduct, job.tracked_product_id)
         location = await db.get(Location, job.location_id)
         if product is None or location is None:
@@ -96,6 +98,20 @@ class TrackingService:
         try:
             current = await self._fetch_live(product, location)
             self._validate_recent(current)
+        except RuntimeError as exc:
+            if str(exc) == "LIVE_PROVIDER_NOT_CONFIGURED":
+                logger.warning(
+                    "polling_skipped",
+                    extra={"provider": product.provider, "tracked_product_id": product.id, "location_id": location.id, "reason": "LIVE_PROVIDER_NOT_CONFIGURED"},
+                )
+                await self._record_request_log(db, product, location, error=exc)
+                jitter = random.randint(0, max(30, job.interval_seconds // 5))
+                job.last_run_at = datetime.now(UTC)
+                job.next_run_at = job.last_run_at + timedelta(seconds=job.interval_seconds + jitter)
+                job.last_error = "LIVE_PROVIDER_NOT_CONFIGURED"
+                return None
+            await self._record_request_log(db, product, location, error=exc)
+            raise
         except Exception as exc:
             await self._record_request_log(db, product, location, error=exc)
             raise

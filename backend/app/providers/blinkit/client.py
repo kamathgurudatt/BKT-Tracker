@@ -1,7 +1,12 @@
+import logging
 from typing import Any
+from urllib.parse import urlparse
 
 from app.providers.base import EthicalProviderClient, ProviderLocation
 from app.providers.parser import normalize_product, normalize_search_results
+
+
+logger = logging.getLogger(__name__)
 
 
 class BlinkitProvider(EthicalProviderClient):
@@ -15,8 +20,25 @@ class BlinkitProvider(EthicalProviderClient):
 
     provider_name = "blinkit"
 
+    @staticmethod
+    def _validate_template(template: str) -> bool:
+        parsed = urlparse(template)
+        if parsed.scheme not in {"http", "https"}:
+            return False
+        if not parsed.netloc:
+            return False
+        blocked_hosts = {"authorized.example", "localhost", "127.0.0.1", "0.0.0.0"}
+        host = (parsed.hostname or "").lower()
+        if host in blocked_hosts or host.endswith(".example") or host.endswith(".invalid"):
+            return False
+        return True
+
     def _format_url(self, template: str | None, *, keyword: str | None = None, external_product_id: str | None = None, location: ProviderLocation) -> str:
         if not template:
+            logger.warning("LIVE_PROVIDER_NOT_CONFIGURED", extra={"provider": self.provider_name, "reason": "missing_template"})
+            raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
+        if not self._validate_template(template):
+            logger.warning("LIVE_PROVIDER_NOT_CONFIGURED", extra={"provider": self.provider_name, "reason": "invalid_template"})
             raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED")
         return template.format(
             query=keyword or "",
