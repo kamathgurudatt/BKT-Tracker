@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     provider_base_delay_seconds: float = 1.5
     provider_max_requests_per_minute: int = 30
     provider_timeout_seconds: int = 12
+    playwright_headless: bool = True
+    playwright_timeout_seconds: int = 30
+    playwright_browser_pool_size: int = 1
+    playwright_max_retries: int = 3
+    playwright_stealth_mode: bool = True
     blinkit_search_url_template: str | None = None
     blinkit_product_url_template: str | None = None
     blinkit_headers: dict[str, str] = Field(default_factory=dict)

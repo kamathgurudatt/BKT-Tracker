@@ -71,3 +71,12 @@ class EthicalProviderClient(ABC):
 
     @abstractmethod
     async def fetch_product(self, external_product_id: str, location: ProviderLocation) -> dict[str, Any]: ...
+
+    async def search_products(self, keyword: str, location: ProviderLocation) -> list[dict[str, Any]]:
+        return await self.search(keyword, location)
+
+    async def check_inventory(self, external_product_id: str, location: ProviderLocation) -> dict[str, Any]:
+        return await self.fetch_product(external_product_id, location)
+
+    def normalize_result(self, payload: dict[str, Any]) -> dict[str, Any]:
+        return payload

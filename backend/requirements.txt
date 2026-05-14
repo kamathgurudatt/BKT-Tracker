@@ -12,3 +12,4 @@ redis==5.2.1
 celery==5.4.0
 httpx==0.28.1
 slowapi==0.1.9
+playwright==1.53.0
