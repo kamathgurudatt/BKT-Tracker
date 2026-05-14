@@ -11,17 +11,8 @@
     "buildEnvironment": "V3"
   },
   "deploy": {
-    "runtime": "V2",
-    "numReplicas": 1,
+    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
     "healthcheckPath": "/health/live",
-    "sleepApplication": false,
-    "useLegacyStacker": false,
-    "ipv6EgressEnabled": false,
-    "multiRegionConfig": {
-      "sfo": {
-        "numReplicas": 1
-      }
-    },
     "restartPolicyType": "ON_FAILURE",
     "healthcheckTimeout": 300,
     "restartPolicyMaxRetries": 10
