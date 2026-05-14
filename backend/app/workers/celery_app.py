@@ -4,6 +4,7 @@ from urllib.parse import urlsplit, urlunsplit
 from celery import Celery
 
 from app.core.config import get_settings
+from app.workers.healthcheck import start_background_server
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
