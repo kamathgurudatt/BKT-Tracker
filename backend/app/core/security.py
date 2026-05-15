@@ -5,16 +5,23 @@ from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__truncate_error=False)
 settings = get_settings()
 
 
+def normalize_password_for_bcrypt(password: str) -> str:
+    encoded = password.encode("utf-8")
+    if len(encoded) <= 72:
+        return password
+    return encoded[:72].decode("utf-8", errors="ignore")
+
+
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return pwd_context.hash(normalize_password_for_bcrypt(password))
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(password, hashed_password)
+    return pwd_context.verify(normalize_password_for_bcrypt(password), hashed_password)
 
 
 def create_access_token(subject: str) -> str:
