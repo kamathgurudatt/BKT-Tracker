@@ -4,18 +4,19 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 from sqlalchemy import text
+from starlette.responses import RedirectResponse
 
 from app.api.routes import admin, auth, debug, locations, tracking, wishlists
 from app.core.config import get_settings
+from app.db.base import Base
 from app.db.redis import redis_client
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, engine
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -54,6 +55,13 @@ async def _dependency_probe_loop(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.dependency_status = {"database": "unavailable", "redis": "unavailable", "status": "degraded"}
+    if settings.bootstrap_mode and engine is not None:
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Bootstrap mode enabled: ensured database tables exist.")
+        except Exception:
+            logger.exception("Bootstrap mode failed while creating database tables.")
     monitor_task = asyncio.create_task(_dependency_probe_loop(app))
     try:
         yield
@@ -81,8 +89,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-if settings.force_https:
-    app.add_middleware(HTTPSRedirectMiddleware)
+@app.middleware("http")
+async def conditional_https_redirect(request: Request, call_next):
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    is_effectively_https = request.url.scheme == "https" or forwarded_proto == "https"
+    if settings.force_https and not is_effectively_https and not request.url.path.startswith("/health/"):
+        https_url = request.url.replace(scheme="https")
+        return RedirectResponse(url=str(https_url), status_code=307)
+    return await call_next(request)
 
 for router in (auth.router, locations.router, wishlists.router, tracking.router, debug.router, admin.router):
     app.include_router(router, prefix=settings.api_v1_prefix)

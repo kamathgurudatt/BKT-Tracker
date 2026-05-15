@@ -1,6 +1,7 @@
 from functools import lru_cache
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
-from pydantic import AnyHttpUrl, Field
+from pydantic import AnyHttpUrl, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -39,6 +40,40 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     email_from: str | None = None
     smtp_url: str | None = None
+    allow_internal_device_anonymous_auth: bool = False
+    internal_device_email: str = "internal.device@blinkitsentinel.app"
+    internal_device_full_name: str = "Internal Device User"
+
+    @field_validator("secret_key", mode="before")
+    @classmethod
+    def _normalize_secret_key_value(cls, value: str | None) -> str:
+        if value is None:
+            return "change-me-in-production"
+        trimmed = value.strip()
+        return trimmed or "change-me-in-production"
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _normalize_database_url(cls, value: str | None) -> str:
+        raw = (value or "").strip()
+        if raw.startswith("postgres://"):
+            return raw.replace("postgres://", "postgresql+asyncpg://", 1)
+        if raw.startswith("postgresql://") and not raw.startswith("postgresql+asyncpg://"):
+            return raw.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return raw or "postgresql+asyncpg://sentinel:sentinel@postgres:5432/sentinel"
+
+    @field_validator("redis_url", mode="before")
+    @classmethod
+    def _normalize_redis_url(cls, value: str | None) -> str | None:
+        raw = (value or "").strip()
+        if not raw:
+            return None
+        if raw.startswith("rediss://"):
+            parsed = urlsplit(raw)
+            query = dict(parse_qsl(parsed.query, keep_blank_values=True))
+            query.setdefault("ssl_cert_reqs", "none")
+            return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
+        return raw
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
