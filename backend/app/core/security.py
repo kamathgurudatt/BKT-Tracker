@@ -17,11 +17,22 @@ def normalize_password_for_bcrypt(password: str) -> str:
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(normalize_password_for_bcrypt(password))
+    normalized = normalize_password_for_bcrypt(password)
+    try:
+        return pwd_context.hash(normalized)
+    except ValueError:
+        return pwd_context.hash(normalized[:72])
 
 
 def verify_password(password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(normalize_password_for_bcrypt(password), hashed_password)
+    normalized = normalize_password_for_bcrypt(password)
+    try:
+        return pwd_context.verify(normalized, hashed_password)
+    except ValueError:
+        try:
+            return pwd_context.verify(normalized[:72], hashed_password)
+        except ValueError:
+            return False
 
 
 def create_access_token(subject: str) -> str:
