@@ -26,6 +26,8 @@ celery_app.conf.beat_schedule = {
     "dispatch-due-monitoring-jobs": {"task": "app.workers.tasks.dispatch_due_jobs", "schedule": 60.0},
 }
 celery_app.conf.timezone = "UTC"
+celery_app.conf.broker_connection_retry_on_startup = True
+celery_app.conf.worker_pool = "solo"
 
 logger.info("Celery initialized.")
 logger.info("Celery broker configured: %s", _mask_redis_url(settings.redis_url))
