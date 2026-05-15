@@ -15,8 +15,6 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> {
   static const _internalDeviceMode = bool.fromEnvironment('INTERNAL_DEVICE_MODE', defaultValue: true);
-  static const _internalEmail = String.fromEnvironment('INTERNAL_USER_EMAIL', defaultValue: 'internal.device@blinkitsentinel.app');
-  static const _internalPassword = String.fromEnvironment('INTERNAL_USER_PASSWORD', defaultValue: 'InternalDevice@123');
 
   final _formKey = GlobalKey<FormState>();
   final apiBaseUrl = TextEditingController();
@@ -94,24 +92,8 @@ class _AuthScreenState extends State<AuthScreen> {
       error = null;
     });
     try {
-      final state = context.read<AppState>();
-      final api = state.api;
-      try {
-        await api.signup(_internalEmail, _internalPassword, 'Internal Device User');
-      } on ApiException {
-        // User may already exist; continue with login.
-      }
-      try {
-        await api.login(_internalEmail, _internalPassword);
-      } on ApiException {
-        // If backend internal anonymous mode is enabled, proceed without token.
-      }
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
-      }
-    } on ApiException catch (exception) {
-      if (mounted) {
-        setState(() => error = exception.message);
       }
     } finally {
       if (mounted) {
