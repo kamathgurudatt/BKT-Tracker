@@ -84,6 +84,8 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    if isinstance(exc, ValueError) and "password cannot be longer than 72 bytes" in str(exc):
+        return JSONResponse(status_code=422, content={"detail": "Password must be 72 bytes or fewer."})
     error_id = str(uuid.uuid4())
     logger.exception("Unhandled request error [%s]: %s %s", error_id, request.method, request.url.path)
     expose = settings.expose_internal_errors or settings.environment != "production"
