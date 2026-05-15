@@ -85,6 +85,18 @@ class ApiClient {
     return response;
   }
 
+  Future<List<Map<String, dynamic>>> analyticsAvailability() async {
+    final response = await _send(() => http.get(Uri.parse('$baseUrl/analytics/availability'), headers: _headers));
+    if (response is! List) throw const ApiException('Analytics availability response was not a list.');
+    return response.map((item) => (item as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<List<Map<String, dynamic>>> analyticsNotifications() async {
+    final response = await _send(() => http.get(Uri.parse('$baseUrl/analytics/notifications'), headers: _headers));
+    if (response is! List) throw const ApiException('Analytics notifications response was not a list.');
+    return response.map((item) => (item as Map).cast<String, dynamic>()).toList();
+  }
+
   Future<dynamic> _send(Future<http.Response> Function() request) async {
     try {
       final response = await request().timeout(const Duration(seconds: 20));
