@@ -12,6 +12,10 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  static const _internalDeviceMode = bool.fromEnvironment('INTERNAL_DEVICE_MODE', defaultValue: true);
+  static const _internalEmail = String.fromEnvironment('INTERNAL_USER_EMAIL', defaultValue: 'internal.device@blinkitsentinel.app');
+  static const _internalPassword = String.fromEnvironment('INTERNAL_USER_PASSWORD', defaultValue: 'InternalDevice@123');
+
   final _formKey = GlobalKey<FormState>();
   final apiBaseUrl = TextEditingController();
   final email = TextEditingController();
@@ -20,6 +24,14 @@ class _AuthScreenState extends State<AuthScreen> {
   bool loading = false;
   bool apiUrlEdited = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_internalDeviceMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoLoginInternalDevice());
+    }
+  }
 
   @override
   void dispose() {
@@ -65,6 +77,39 @@ class _AuthScreenState extends State<AuthScreen> {
       if (mounted) {
         setState(() => error = message);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
+  }
+
+  Future<void> _autoLoginInternalDevice() async {
+    if (loading) return;
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      final state = context.read<AppState>();
+      final api = state.api;
+      try {
+        await api.signup(_internalEmail, _internalPassword, 'Internal Device User');
+      } on ApiException {
+        // User may already exist; continue with login.
+      }
+      try {
+        await api.login(_internalEmail, _internalPassword);
+      } on ApiException {
+        // If backend internal anonymous mode is enabled, proceed without token.
+      }
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
+    } on ApiException catch (exception) {
+      if (mounted) {
+        setState(() => error = exception.message);
       }
     } finally {
       if (mounted) {
@@ -124,27 +169,38 @@ class _AuthScreenState extends State<AuthScreen> {
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
-                          controller: apiBaseUrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Backend API URL',
-                            helperText: 'Use your hosted HTTPS backend URL (or developer override).',
-                            prefixIcon: Icon(Icons.dns_outlined),
+                        if (!_internalDeviceMode) ...[
+                          TextFormField(
+                            controller: apiBaseUrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Backend API URL',
+                              helperText: 'Use your hosted HTTPS backend URL (or developer override).',
+                              prefixIcon: Icon(Icons.dns_outlined),
+                            ),
+                            keyboardType: TextInputType.url,
+                            onChanged: (_) => apiUrlEdited = true,
+                            validator: _validateApiBaseUrl,
                           ),
-                          keyboardType: TextInputType.url,
-                          onChanged: (_) => apiUrlEdited = true,
-                          validator: _validateApiBaseUrl,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
+                          const SizedBox(height: 12),
+                        ],
+                        if (_internalDeviceMode) ...[
+                          const ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.verified_user_outlined),
+                            title: Text('Internal device mode enabled'),
+                            subtitle: Text('Using preconfigured Railway backend and device account.'),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        if (!_internalDeviceMode) TextFormField(
                           controller: email,
                           decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [AutofillHints.email],
                           validator: _validateEmail,
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
+                        if (!_internalDeviceMode) const SizedBox(height: 12),
+                        if (!_internalDeviceMode) TextFormField(
                           controller: password,
                           decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
                           obscureText: true,
@@ -156,16 +212,21 @@ class _AuthScreenState extends State<AuthScreen> {
                           Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                         ],
                         const SizedBox(height: 16),
-                        FilledButton(
+                        if (!_internalDeviceMode) FilledButton(
                           onPressed: loading ? null : _submit,
                           child: loading
                               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                               : Text(register ? 'Register & Login' : 'Login'),
                         ),
-                        TextButton(
+                        if (!_internalDeviceMode) TextButton(
                           onPressed: loading ? null : () => setState(() => register = !register),
                           child: Text(register ? 'Have an account?' : 'Create an account'),
                         ),
+                        if (_internalDeviceMode && loading)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                       ],
                     ),
                   ),
