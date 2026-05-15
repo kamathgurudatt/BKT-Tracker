@@ -14,8 +14,9 @@ from starlette.responses import RedirectResponse
 
 from app.api.routes import admin, auth, debug, locations, tracking, wishlists
 from app.core.config import get_settings
+from app.db.base import Base
 from app.db.redis import redis_client
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, engine
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -54,6 +55,13 @@ async def _dependency_probe_loop(app: FastAPI) -> None:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.dependency_status = {"database": "unavailable", "redis": "unavailable", "status": "degraded"}
+    if settings.bootstrap_mode and engine is not None:
+        try:
+            async with engine.begin() as conn:
+                await conn.run_sync(Base.metadata.create_all)
+            logger.info("Bootstrap mode enabled: ensured database tables exist.")
+        except Exception:
+            logger.exception("Bootstrap mode failed while creating database tables.")
     monitor_task = asyncio.create_task(_dependency_probe_loop(app))
     try:
         yield
