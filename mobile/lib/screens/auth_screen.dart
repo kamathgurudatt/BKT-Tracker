@@ -99,7 +99,11 @@ class _AuthScreenState extends State<AuthScreen> {
       } on ApiException {
         // User may already exist; continue with login.
       }
-      await api.login(_internalEmail, _internalPassword);
+      try {
+        await api.login(_internalEmail, _internalPassword);
+      } on ApiException {
+        // If backend internal anonymous mode is enabled, proceed without token.
+      }
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
