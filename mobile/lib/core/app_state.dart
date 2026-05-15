@@ -26,7 +26,11 @@ class AppState extends ChangeNotifier {
     final preferences = await SharedPreferences.getInstance();
     final savedApiBaseUrl = preferences.getString(_apiBaseUrlPreferenceKey);
     if (savedApiBaseUrl != null && savedApiBaseUrl.trim().isNotEmpty) {
-      api.updateBaseUrl(savedApiBaseUrl);
+      if (ApiClient.isValidBaseUrl(savedApiBaseUrl)) {
+        api.updateBaseUrl(savedApiBaseUrl);
+      } else {
+        await preferences.remove(_apiBaseUrlPreferenceKey);
+      }
     }
     settingsLoaded = true;
     notifyListeners();
@@ -34,6 +38,9 @@ class AppState extends ChangeNotifier {
 
   Future<void> updateApiBaseUrl(String value) async {
     final normalized = ApiClient.normalizeBaseUrl(value);
+    if (!ApiClient.isValidBaseUrl(normalized)) {
+      throw const ApiException('Backend URL is invalid. Please use a full http(s) URL ending with /api/v1.');
+    }
     api.updateBaseUrl(normalized);
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_apiBaseUrlPreferenceKey, normalized);
