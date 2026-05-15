@@ -8,7 +8,11 @@ import '../models/product.dart';
 
 const _prodApiBaseUrl = String.fromEnvironment('API_BASE_URL_PROD', defaultValue: 'https://web-production-bd4d.up.railway.app/api/v1');
 
-String _defaultApiBaseUrl() => _prodApiBaseUrl;
+String _defaultApiBaseUrl() {
+  final normalized = ApiClient.normalizeBaseUrl(_prodApiBaseUrl);
+  if (ApiClient.isValidBaseUrl(normalized)) return normalized;
+  return 'https://web-production-bd4d.up.railway.app/api/v1';
+}
 
 class ApiException implements Exception {
   const ApiException(this.message, {this.statusCode});
@@ -28,12 +32,22 @@ class ApiClient {
 
   static String normalizeBaseUrl(String value) {
     final trimmed = value.trim();
+    if (trimmed.isEmpty) return '';
     if (trimmed.endsWith('/')) return trimmed.substring(0, trimmed.length - 1);
     return trimmed;
   }
 
+  static bool isValidBaseUrl(String value) {
+    final normalized = normalizeBaseUrl(value);
+    if (normalized.isEmpty) return false;
+    final uri = Uri.tryParse(normalized);
+    if (uri == null || !uri.hasScheme || uri.host.isEmpty) return false;
+    return uri.scheme == 'http' || uri.scheme == 'https';
+  }
+
   void updateBaseUrl(String value) {
-    baseUrl = normalizeBaseUrl(value);
+    final normalized = normalizeBaseUrl(value);
+    baseUrl = isValidBaseUrl(normalized) ? normalized : _defaultApiBaseUrl();
     token = null;
   }
 
