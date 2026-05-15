@@ -10,7 +10,7 @@ class Token(BaseModel):
 
 class UserCreate(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8, max_length=128)
+    password: str = Field(min_length=8, max_length=72)
     full_name: str | None = None
 
 
@@ -25,7 +25,7 @@ class UserRead(BaseModel):
 
 class LoginRequest(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(min_length=8, max_length=72)
 
 
 class LocationCreate(BaseModel):

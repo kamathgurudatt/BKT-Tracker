@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -139,6 +141,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final passwordText = value ?? '';
     if (passwordText.isEmpty) return 'Password is required.';
     if (passwordText.length < 8) return 'Password must be at least 8 characters.';
+    if (utf8.encode(passwordText).length > 72) return 'Password must be 72 bytes or fewer.';
     return null;
   }
 
