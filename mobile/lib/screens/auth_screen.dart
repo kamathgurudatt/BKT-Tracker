@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -12,6 +14,8 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
+  static const _internalDeviceMode = bool.fromEnvironment('INTERNAL_DEVICE_MODE', defaultValue: true);
+
   final _formKey = GlobalKey<FormState>();
   final apiBaseUrl = TextEditingController();
   final email = TextEditingController();
@@ -20,6 +24,14 @@ class _AuthScreenState extends State<AuthScreen> {
   bool loading = false;
   bool apiUrlEdited = false;
   String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    if (_internalDeviceMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _autoLoginInternalDevice());
+    }
+  }
 
   @override
   void dispose() {
@@ -73,6 +85,23 @@ class _AuthScreenState extends State<AuthScreen> {
     }
   }
 
+  Future<void> _autoLoginInternalDevice() async {
+    if (loading) return;
+    setState(() {
+      loading = true;
+      error = null;
+    });
+    try {
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/dashboard');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => loading = false);
+      }
+    }
+  }
+
   String? _validateApiBaseUrl(String? value) {
     final url = value?.trim() ?? '';
     if (url.isEmpty) return 'Backend API URL is required.';
@@ -94,6 +123,7 @@ class _AuthScreenState extends State<AuthScreen> {
     final passwordText = value ?? '';
     if (passwordText.isEmpty) return 'Password is required.';
     if (passwordText.length < 8) return 'Password must be at least 8 characters.';
+    if (utf8.encode(passwordText).length > 72) return 'Password must be 72 bytes or fewer.';
     return null;
   }
 
@@ -124,27 +154,38 @@ class _AuthScreenState extends State<AuthScreen> {
                           style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 16),
-                        TextFormField(
-                          controller: apiBaseUrl,
-                          decoration: const InputDecoration(
-                            labelText: 'Backend API URL',
-                            helperText: 'Use your hosted HTTPS backend URL (or developer override).',
-                            prefixIcon: Icon(Icons.dns_outlined),
+                        if (!_internalDeviceMode) ...[
+                          TextFormField(
+                            controller: apiBaseUrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Backend API URL',
+                              helperText: 'Use your hosted HTTPS backend URL (or developer override).',
+                              prefixIcon: Icon(Icons.dns_outlined),
+                            ),
+                            keyboardType: TextInputType.url,
+                            onChanged: (_) => apiUrlEdited = true,
+                            validator: _validateApiBaseUrl,
                           ),
-                          keyboardType: TextInputType.url,
-                          onChanged: (_) => apiUrlEdited = true,
-                          validator: _validateApiBaseUrl,
-                        ),
-                        const SizedBox(height: 12),
-                        TextFormField(
+                          const SizedBox(height: 12),
+                        ],
+                        if (_internalDeviceMode) ...[
+                          const ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(Icons.verified_user_outlined),
+                            title: Text('Internal device mode enabled'),
+                            subtitle: Text('Using preconfigured Railway backend and device account.'),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        if (!_internalDeviceMode) TextFormField(
                           controller: email,
                           decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
                           keyboardType: TextInputType.emailAddress,
                           autofillHints: const [AutofillHints.email],
                           validator: _validateEmail,
                         ),
-                        const SizedBox(height: 12),
-                        TextFormField(
+                        if (!_internalDeviceMode) const SizedBox(height: 12),
+                        if (!_internalDeviceMode) TextFormField(
                           controller: password,
                           decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
                           obscureText: true,
@@ -156,16 +197,21 @@ class _AuthScreenState extends State<AuthScreen> {
                           Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                         ],
                         const SizedBox(height: 16),
-                        FilledButton(
+                        if (!_internalDeviceMode) FilledButton(
                           onPressed: loading ? null : _submit,
                           child: loading
                               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
                               : Text(register ? 'Register & Login' : 'Login'),
                         ),
-                        TextButton(
+                        if (!_internalDeviceMode) TextButton(
                           onPressed: loading ? null : () => setState(() => register = !register),
                           child: Text(register ? 'Have an account?' : 'Create an account'),
                         ),
+                        if (_internalDeviceMode && loading)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 8),
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                       ],
                     ),
                   ),
