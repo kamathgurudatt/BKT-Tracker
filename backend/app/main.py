@@ -4,13 +4,13 @@ from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 from sqlalchemy import text
+from starlette.responses import RedirectResponse
 
 from app.api.routes import admin, auth, debug, locations, tracking, wishlists
 from app.core.config import get_settings
@@ -81,8 +81,14 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
-if settings.force_https:
-    app.add_middleware(HTTPSRedirectMiddleware)
+@app.middleware("http")
+async def conditional_https_redirect(request: Request, call_next):
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    is_effectively_https = request.url.scheme == "https" or forwarded_proto == "https"
+    if settings.force_https and not is_effectively_https and not request.url.path.startswith("/health/"):
+        https_url = request.url.replace(scheme="https")
+        return RedirectResponse(url=str(https_url), status_code=307)
+    return await call_next(request)
 
 for router in (auth.router, locations.router, wishlists.router, tracking.router, debug.router, admin.router):
     app.include_router(router, prefix=settings.api_v1_prefix)
