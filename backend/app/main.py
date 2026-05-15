@@ -1,8 +1,9 @@
 import asyncio
 import logging
+import uuid
 from contextlib import asynccontextmanager, suppress
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -83,8 +84,18 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
-    logger.exception("Unhandled request error: %s %s", request.method, request.url.path)
-    return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    error_id = str(uuid.uuid4())
+    logger.exception("Unhandled request error [%s]: %s %s", error_id, request.method, request.url.path)
+    expose = settings.expose_internal_errors or settings.environment != "production"
+    detail = f"Internal server error (error_id={error_id})"
+    if expose:
+        detail = f"{detail}: {type(exc).__name__}: {exc}"
+    return JSONResponse(status_code=500, content={"detail": detail, "error_id": error_id})
+
+
+@app.exception_handler(HTTPException)
+async def handled_http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
 app.add_middleware(SlowAPIMiddleware)

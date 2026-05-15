@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     allow_internal_device_anonymous_auth: bool = False
     internal_device_email: str = "internal.device@blinkitsentinel.app"
     internal_device_full_name: str = "Internal Device User"
+    expose_internal_errors: bool = False
 
     @field_validator("secret_key", mode="before")
     @classmethod
