@@ -13,6 +13,7 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
+  static const _internalDeviceMode = bool.fromEnvironment('INTERNAL_DEVICE_MODE', defaultValue: true);
   final apiBaseUrl = TextEditingController();
   bool initialized = false;
 
@@ -52,18 +53,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           SwitchListTile(title: const Text('Dark mode'), value: state.themeMode == ThemeMode.dark, onChanged: state.toggleDarkMode),
           const SizedBox(height: 12),
-          TextField(
-            controller: apiBaseUrl,
-            decoration: const InputDecoration(
-              labelText: 'Backend API URL',
-              helperText: 'Use your hosted HTTPS backend URL (production/staging), or developer override URL.',
-              prefixIcon: Icon(Icons.dns_outlined),
+          if (!_internalDeviceMode) ...[
+            TextField(
+              controller: apiBaseUrl,
+              decoration: const InputDecoration(
+                labelText: 'Backend API URL',
+                helperText: 'Use your hosted HTTPS backend URL (production/staging), or developer override URL.',
+                prefixIcon: Icon(Icons.dns_outlined),
+              ),
+              keyboardType: TextInputType.url,
             ),
-            keyboardType: TextInputType.url,
-          ),
-          const SizedBox(height: 8),
-          FilledButton.icon(onPressed: _saveApiBaseUrl, icon: const Icon(Icons.save), label: const Text('Save backend URL')),
-          const Divider(height: 32),
+            const SizedBox(height: 8),
+            FilledButton.icon(onPressed: _saveApiBaseUrl, icon: const Icon(Icons.save), label: const Text('Save backend URL')),
+            const Divider(height: 32),
+          ] else
+            const ListTile(
+              leading: Icon(Icons.link_off),
+              title: Text('Backend URL is managed centrally'),
+              subtitle: Text('Internal device mode hides API override to enforce Railway backend usage.'),
+            ),
           const ListTile(title: Text('Polling frequency'), subtitle: Text('Safe default: every 15 minutes')),
           const ListTile(title: Text('Notification types'), subtitle: Text('Restock, price drop, ETA improvement')),
           const ListTile(title: Text('Alert sensitivity'), subtitle: Text('Balanced')),
