@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from slowapi.util import get_remote_address
 from sqlalchemy import text
+from starlette.responses import RedirectResponse
 
 from app.api.routes import admin, auth, debug, locations, tracking, wishlists
 from app.core.config import get_settings
@@ -82,9 +83,11 @@ app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 @app.middleware("http")
 async def conditional_https_redirect(request: Request, call_next):
-    if settings.force_https and request.url.scheme == "http" and not request.url.path.startswith("/health/"):
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    is_effectively_https = request.url.scheme == "https" or forwarded_proto == "https"
+    if settings.force_https and not is_effectively_https and not request.url.path.startswith("/health/"):
         https_url = request.url.replace(scheme="https")
-        return JSONResponse(status_code=307, content={"detail": "Use HTTPS", "redirect_to": str(https_url)})
+        return RedirectResponse(url=str(https_url), status_code=307)
     return await call_next(request)
 
 for router in (auth.router, locations.router, wishlists.router, tracking.router, debug.router, admin.router):
