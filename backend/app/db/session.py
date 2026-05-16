@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncGenerator
 
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import get_settings
@@ -21,6 +22,6 @@ except Exception:
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     if AsyncSessionLocal is None:
-        raise RuntimeError("Database session factory unavailable")
+        raise HTTPException(status_code=503, detail="Database unavailable: session factory not initialized")
     async with AsyncSessionLocal() as session:
         yield session

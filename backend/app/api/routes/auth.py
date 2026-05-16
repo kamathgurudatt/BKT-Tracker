@@ -25,7 +25,8 @@ async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)):
 @router.post("/login", response_model=Token)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await db.scalar(select(User).where(User.email == payload.email))
-    if not user or not verify_password(payload.password, user.hashed_password):
+    is_valid = bool(user and verify_password(payload.password, user.hashed_password))
+    if not is_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
     return Token(access_token=create_access_token(user.email))
 
