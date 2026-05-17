@@ -27,8 +27,11 @@ celery_app.conf.beat_schedule = {
 }
 celery_app.conf.timezone = "UTC"
 celery_app.conf.broker_connection_retry_on_startup = True
-celery_app.conf.worker_pool = "solo"
+# FIX: worker_pool is now configurable via CELERY_WORKER_POOL env var
+# Default is "prefork" (multi-process) — production-safe.
+# Set CELERY_WORKER_POOL=solo only for local debugging.
+celery_app.conf.worker_pool = settings.celery_worker_pool
 
-logger.info("Celery initialized.")
+logger.info("Celery initialized with pool=%s", settings.celery_worker_pool)
 logger.info("Celery broker configured: %s", _mask_redis_url(settings.redis_url))
 logger.info("Celery result backend configured: %s", _mask_redis_url(settings.redis_url))

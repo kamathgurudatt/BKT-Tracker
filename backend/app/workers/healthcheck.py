@@ -27,7 +27,9 @@ class WorkerHealthHandler(BaseHTTPRequestHandler):
 
 
 def _port() -> int:
-    return int(os.environ.get("PORT", "8000"))
+    # FIX: use WORKER_HEALTH_PORT (default 8001) to avoid conflict with the
+    # API server which binds to PORT (default 8000).
+    return int(os.environ.get("WORKER_HEALTH_PORT", "8001"))
 
 
 def start_background_server() -> None:

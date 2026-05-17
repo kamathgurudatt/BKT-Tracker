@@ -44,6 +44,8 @@ class Settings(BaseSettings):
     internal_device_email: str = "internal.device@blinkitsentinel.app"
     internal_device_full_name: str = "Internal Device User"
     expose_internal_errors: bool = False
+    # FIX: make celery worker pool configurable (solo is not production-safe)
+    celery_worker_pool: str = "prefork"
 
     @field_validator("secret_key", mode="before")
     @classmethod

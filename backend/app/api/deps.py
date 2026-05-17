@@ -10,7 +10,8 @@ from app.db.session import get_db
 from app.models.entities import User, UserRole
 
 settings = get_settings()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_v1_prefix}/auth/login", auto_error=False)
+# FIX: tokenUrl now points to /auth/token which accepts OAuth2 form data
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.api_v1_prefix}/auth/token", auto_error=False)
 
 
 async def get_current_user(token: str | None = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)) -> User:

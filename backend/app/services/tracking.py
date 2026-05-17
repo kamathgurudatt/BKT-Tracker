@@ -85,10 +85,38 @@ class TrackingService:
             )
         )
 
+    # FIX: guard against redis_client being None
+    async def _redis_get(self, key: str) -> str | None:
+        if redis_client is None:
+            return None
+        try:
+            return await redis_client.get(key)
+        except Exception as exc:
+            logger.warning("redis_get_failed key=%s: %s", key, exc)
+            return None
+
+    async def _redis_set(self, key: str, value: str, ex: int) -> None:
+        if redis_client is None:
+            return
+        try:
+            await redis_client.set(key, value, ex=ex)
+        except Exception as exc:
+            logger.warning("redis_set_failed key=%s: %s", key, exc)
+
+    async def _redis_set_nx(self, key: str, value: str, ex: int) -> bool:
+        if redis_client is None:
+            return True  # treat as non-duplicate when Redis is down
+        try:
+            inserted = await redis_client.set(key, value, ex=ex, nx=True)
+            return bool(inserted)
+        except Exception as exc:
+            logger.warning("redis_setnx_failed key=%s: %s", key, exc)
+            return True
+
     async def _is_duplicate_alert(self, user_id: int, product_id: int, location_id: int, event_type: str) -> bool:
         key = f"alert:{user_id}:{product_id}:{location_id}:{event_type}"
-        inserted = await redis_client.set(key, "1", ex=settings.duplicate_alert_window_seconds, nx=True)
-        return not bool(inserted)
+        inserted = await self._redis_set_nx(key, "1", settings.duplicate_alert_window_seconds)
+        return not inserted
 
     async def poll_once(self, db: AsyncSession, job: MonitoringJob) -> InventorySnapshot | None:
         product = await db.get(TrackedProduct, job.tracked_product_id)
@@ -128,8 +156,10 @@ class TrackingService:
         )
         previous = previous_snapshot.raw_payload if previous_snapshot else None
         current_hash = inventory_hash(current)
-        previous_hash = await redis_client.get(f"snapshot:{product.id}:{location.id}:hash")
-        await redis_client.set(f"snapshot:{product.id}:{location.id}:hash", current_hash, ex=max(settings.default_poll_interval_seconds * 4, 3600))
+        # FIX: use guarded redis helpers — no crash when Redis is unavailable
+        hash_key = f"snapshot:{product.id}:{location.id}:hash"
+        previous_hash = await self._redis_get(hash_key)
+        await self._redis_set(hash_key, current_hash, max(settings.default_poll_interval_seconds * 4, 3600))
 
         snapshot = InventorySnapshot(
             tracked_product_id=product.id,
@@ -191,26 +221,26 @@ class TrackingService:
             .order_by(desc(InventoryChangeEvent.detected_at))
             .limit(1)
         )
-        failed_requests = await db.scalars(
+        failed_requests = (await db.scalars(
             select(ProviderRequestLog)
             .join(TrackedProduct, TrackedProduct.id == ProviderRequestLog.tracked_product_id)
             .where(TrackedProduct.user_id == user.id, ProviderRequestLog.status == RequestStatus.FAILURE)
             .order_by(desc(ProviderRequestLog.fetched_at))
             .limit(20)
-        )
+        )).all()
         location = await db.get(Location, latest_log.location_id) if latest_log and latest_log.location_id else None
         recent_success_count = await db.scalar(
             select(func.count(ProviderRequestLog.id))
             .join(TrackedProduct, TrackedProduct.id == ProviderRequestLog.tracked_product_id)
             .where(TrackedProduct.user_id == user.id, ProviderRequestLog.status == RequestStatus.SUCCESS)
         )
-        recent_change_events = await db.scalars(
+        recent_change_events = (await db.scalars(
             select(InventoryChangeEvent)
             .join(TrackedProduct, TrackedProduct.id == InventoryChangeEvent.tracked_product_id)
             .where(TrackedProduct.user_id == user.id)
             .order_by(desc(InventoryChangeEvent.detected_at))
             .limit(5)
-        )
+        )).all()
         parsed_stock_fields = {}
         if latest_log and latest_log.response_excerpt:
             payload = latest_log.response_excerpt
@@ -230,7 +260,8 @@ class TrackingService:
             "location_id": latest_log.location_id if latest_log else None,
             "request_status": latest_log.status.value if latest_log else None,
             "request_headers_used": latest_log.request_headers if latest_log else None,
-            "response_headers": latest_log.request_headers if latest_log else {},
+            # FIX: response_headers was incorrectly returning request_headers
+            "response_headers": {},
             "response_timestamp": latest_log.fetched_at if latest_log else None,
             "parsed_stock_fields": parsed_stock_fields,
             "location_context": {"id": location.id, "name": location.name, "pincode": location.pincode, "latitude": location.latitude, "longitude": location.longitude} if location else {},
@@ -275,7 +306,7 @@ class TrackingService:
             raise ValueError("Location not found")
         rounds: list[dict] = []
         previous_payload: dict | None = None
-        for _ in range(polls):
+        for i in range(polls):
             current = await self._fetch_live(product, location)
             diff = []
             if previous_payload is not None:
@@ -284,6 +315,6 @@ class TrackingService:
                 diff = list(difflib.unified_diff(old_text, new_text, fromfile="old", tofile="new", lineterm=""))
             rounds.append({"timestamp": datetime.now(UTC).isoformat(), "payload": current, "diff_from_previous": diff})
             previous_payload = current
-            if _ < polls - 1:
+            if i < polls - 1:
                 await asyncio.sleep(15)
         return {"tracked_product_id": tracked_product_id, "location_id": location_id, "poll_interval_seconds": 15, "rounds": rounds}

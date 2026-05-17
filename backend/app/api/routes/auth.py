@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,10 +29,22 @@ async def signup(payload: UserCreate, db: AsyncSession = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """JSON login endpoint — for use from the mobile app and API clients."""
     user = await db.scalar(select(User).where(User.email == payload.email))
     is_valid = bool(user and verify_password(payload.password, user.hashed_password))
     if not is_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    return Token(access_token=create_access_token(user.email))
+
+
+# FIX: add /auth/token endpoint accepting OAuth2 form data so Swagger "Authorize" works
+@router.post("/token", response_model=Token, include_in_schema=True)
+async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+    """OAuth2 form-data token endpoint — used by Swagger UI Authorize dialog."""
+    user = await db.scalar(select(User).where(User.email == form_data.username))
+    is_valid = bool(user and verify_password(form_data.password, user.hashed_password))
+    if not is_valid:
+        raise HTTPException(status_code=401, detail="Invalid email or password", headers={"WWW-Authenticate": "Bearer"})
     return Token(access_token=create_access_token(user.email))
 
 

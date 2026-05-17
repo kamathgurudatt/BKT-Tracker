@@ -1,14 +1,18 @@
-CREATE TYPE userrole AS ENUM ('USER', 'ADMIN');
-CREATE TYPE stockstatus AS ENUM ('IN_STOCK', 'OUT_OF_STOCK', 'HIDDEN', 'UNKNOWN');
-CREATE TYPE notificationtype AS ENUM ('RESTOCK', 'PRICE_DROP', 'STOCK_INCREASE', 'ETA_IMPROVED', 'SYSTEM');
-CREATE TYPE jobstatus AS ENUM ('ACTIVE', 'PAUSED', 'FAILED');
+-- BKT-Tracker / Blinkit Stock Sentinel schema
+-- Enum values are lowercase to match SQLAlchemy Python enum definitions.
 
-CREATE TABLE users (
+CREATE TYPE IF NOT EXISTS userrole AS ENUM ('user', 'admin');
+CREATE TYPE IF NOT EXISTS stockstatus AS ENUM ('in_stock', 'out_of_stock', 'hidden', 'unknown');
+CREATE TYPE IF NOT EXISTS notificationtype AS ENUM ('restock', 'price_drop', 'stock_increase', 'eta_improved', 'system');
+CREATE TYPE IF NOT EXISTS jobstatus AS ENUM ('active', 'paused', 'failed');
+CREATE TYPE IF NOT EXISTS requeststatus AS ENUM ('success', 'failure');
+
+CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   email VARCHAR(320) NOT NULL UNIQUE,
   hashed_password VARCHAR(255) NOT NULL,
   full_name VARCHAR(120),
-  role userrole NOT NULL DEFAULT 'USER',
+  role userrole NOT NULL DEFAULT 'user',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
   fcm_token TEXT,
   settings JSONB NOT NULL DEFAULT '{}',
@@ -16,7 +20,7 @@ CREATE TABLE users (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE locations (
+CREATE TABLE IF NOT EXISTS locations (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(120) NOT NULL,
@@ -27,10 +31,10 @@ CREATE TABLE locations (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_locations_user_enabled ON locations(user_id, enabled);
-CREATE INDEX ix_locations_pincode ON locations(pincode);
+CREATE INDEX IF NOT EXISTS ix_locations_user_enabled ON locations(user_id, enabled);
+CREATE INDEX IF NOT EXISTS ix_locations_pincode ON locations(pincode);
 
-CREATE TABLE wishlists (
+CREATE TABLE IF NOT EXISTS wishlists (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   name VARCHAR(120) NOT NULL,
@@ -38,9 +42,9 @@ CREATE TABLE wishlists (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_wishlists_user_id ON wishlists(user_id);
+CREATE INDEX IF NOT EXISTS ix_wishlists_user_id ON wishlists(user_id);
 
-CREATE TABLE tracked_products (
+CREATE TABLE IF NOT EXISTS tracked_products (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   wishlist_id BIGINT REFERENCES wishlists(id) ON DELETE SET NULL,
@@ -56,14 +60,14 @@ CREATE TABLE tracked_products (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_user_provider_product UNIQUE (user_id, provider, external_product_id)
 );
-CREATE INDEX ix_tracked_products_user_id ON tracked_products(user_id);
-CREATE INDEX ix_tracked_products_category ON tracked_products(category);
+CREATE INDEX IF NOT EXISTS ix_tracked_products_user_id ON tracked_products(user_id);
+CREATE INDEX IF NOT EXISTS ix_tracked_products_category ON tracked_products(category);
 
-CREATE TABLE inventory_snapshots (
+CREATE TABLE IF NOT EXISTS inventory_snapshots (
   id BIGSERIAL PRIMARY KEY,
   tracked_product_id BIGINT NOT NULL REFERENCES tracked_products(id) ON DELETE CASCADE,
   location_id BIGINT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
-  status stockstatus NOT NULL DEFAULT 'UNKNOWN',
+  status stockstatus NOT NULL DEFAULT 'unknown',
   price NUMERIC(10,2),
   mrp NUMERIC(10,2),
   discount_percent DOUBLE PRECISION,
@@ -74,10 +78,10 @@ CREATE TABLE inventory_snapshots (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_snapshots_product_location_time ON inventory_snapshots(tracked_product_id, location_id, observed_at DESC);
-CREATE INDEX ix_snapshots_status ON inventory_snapshots(status);
+CREATE INDEX IF NOT EXISTS ix_snapshots_product_location_time ON inventory_snapshots(tracked_product_id, location_id, observed_at DESC);
+CREATE INDEX IF NOT EXISTS ix_snapshots_status ON inventory_snapshots(status);
 
-CREATE TABLE price_history (
+CREATE TABLE IF NOT EXISTS price_history (
   id BIGSERIAL PRIMARY KEY,
   tracked_product_id BIGINT NOT NULL REFERENCES tracked_products(id) ON DELETE CASCADE,
   location_id BIGINT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
@@ -87,9 +91,9 @@ CREATE TABLE price_history (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_price_history_product_location_time ON price_history(tracked_product_id, location_id, observed_at DESC);
+CREATE INDEX IF NOT EXISTS ix_price_history_product_location_time ON price_history(tracked_product_id, location_id, observed_at DESC);
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id BIGSERIAL PRIMARY KEY,
   user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   tracked_product_id BIGINT REFERENCES tracked_products(id) ON DELETE SET NULL,
@@ -104,14 +108,14 @@ CREATE TABLE notifications (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_notifications_user_id ON notifications(user_id);
-CREATE INDEX ix_notifications_type ON notifications(type);
+CREATE INDEX IF NOT EXISTS ix_notifications_user_id ON notifications(user_id);
+CREATE INDEX IF NOT EXISTS ix_notifications_type ON notifications(type);
 
-CREATE TABLE monitoring_jobs (
+CREATE TABLE IF NOT EXISTS monitoring_jobs (
   id BIGSERIAL PRIMARY KEY,
   tracked_product_id BIGINT NOT NULL REFERENCES tracked_products(id) ON DELETE CASCADE,
   location_id BIGINT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
-  status jobstatus NOT NULL DEFAULT 'ACTIVE',
+  status jobstatus NOT NULL DEFAULT 'active',
   interval_seconds INTEGER NOT NULL DEFAULT 900,
   last_run_at TIMESTAMPTZ,
   next_run_at TIMESTAMPTZ,
@@ -121,11 +125,9 @@ CREATE TABLE monitoring_jobs (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT uq_monitoring_product_location UNIQUE (tracked_product_id, location_id)
 );
-CREATE INDEX ix_monitoring_jobs_due ON monitoring_jobs(status, next_run_at);
+CREATE INDEX IF NOT EXISTS ix_monitoring_jobs_due ON monitoring_jobs(status, next_run_at);
 
-CREATE TYPE requeststatus AS ENUM ('SUCCESS', 'FAILURE');
-
-CREATE TABLE provider_request_logs (
+CREATE TABLE IF NOT EXISTS provider_request_logs (
   id BIGSERIAL PRIMARY KEY,
   provider VARCHAR(40) NOT NULL,
   endpoint TEXT NOT NULL,
@@ -140,10 +142,10 @@ CREATE TABLE provider_request_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_provider_request_logs_provider ON provider_request_logs(provider);
-CREATE INDEX ix_provider_logs_product_location_time ON provider_request_logs(tracked_product_id, location_id, fetched_at DESC);
+CREATE INDEX IF NOT EXISTS ix_provider_request_logs_provider ON provider_request_logs(provider);
+CREATE INDEX IF NOT EXISTS ix_provider_logs_product_location_time ON provider_request_logs(tracked_product_id, location_id, fetched_at DESC);
 
-CREATE TABLE inventory_change_events (
+CREATE TABLE IF NOT EXISTS inventory_change_events (
   id BIGSERIAL PRIMARY KEY,
   tracked_product_id BIGINT NOT NULL REFERENCES tracked_products(id) ON DELETE CASCADE,
   location_id BIGINT NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
@@ -156,5 +158,5 @@ CREATE TABLE inventory_change_events (
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ix_change_events_product_location_time ON inventory_change_events(tracked_product_id, location_id, detected_at DESC);
-CREATE INDEX ix_inventory_change_events_change_type ON inventory_change_events(change_type);
+CREATE INDEX IF NOT EXISTS ix_change_events_product_location_time ON inventory_change_events(tracked_product_id, location_id, detected_at DESC);
+CREATE INDEX IF NOT EXISTS ix_inventory_change_events_change_type ON inventory_change_events(change_type);

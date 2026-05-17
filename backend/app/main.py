@@ -13,7 +13,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy import text
 from starlette.responses import RedirectResponse
 
-from app.api.routes import admin, auth, debug, locations, tracking, wishlists
+from app.api.routes import admin, analytics, auth, debug, locations, tracking, wishlists
 from app.core.config import get_settings
 from app.db.base import Base
 from app.db.redis import redis_client
@@ -100,8 +100,12 @@ async def handled_http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
+# FIX: Middleware ordering — HTTPS redirect is registered first so it becomes
+# the innermost; CORS is added last so it wraps everything and adds headers
+# even to redirect responses.
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(CORSMiddleware, allow_origins=settings.cors_origins, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+
 @app.middleware("http")
 async def conditional_https_redirect(request: Request, call_next):
     forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
@@ -111,7 +115,18 @@ async def conditional_https_redirect(request: Request, call_next):
         return RedirectResponse(url=str(https_url), status_code=307)
     return await call_next(request)
 
-for router in (auth.router, locations.router, wishlists.router, tracking.router, debug.router, admin.router):
+
+# CORS is added last → it is outermost → all responses including redirects get CORS headers
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# FIX: analytics router was missing from this list
+for router in (auth.router, locations.router, wishlists.router, tracking.router, analytics.router, debug.router, admin.router):
     app.include_router(router, prefix=settings.api_v1_prefix)
 
 

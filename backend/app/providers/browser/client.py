@@ -49,7 +49,10 @@ class BrowserManager:
     @asynccontextmanager
     async def page(self):
         browser = await self.ensure_browser()
-        context = await browser.new_context()
+        context = await browser.new_context(
+            user_agent="Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+            viewport={"width": 390, "height": 844},
+        )
         page = await context.new_page()
         page.set_default_timeout(self.settings.playwright_timeout_seconds * 1000)
         try:
@@ -67,7 +70,7 @@ class BrowserProvider(EthicalProviderClient):
         if not location.pincode:
             return
         await page.goto("https://blinkit.com", wait_until="domcontentloaded")
-        # no-op fallback if selector not found.
+        await asyncio.sleep(1.0 + random.uniform(0, 0.5))
 
     async def search(self, keyword: str, location: ProviderLocation) -> list[dict[str, Any]]:
         manager = await BrowserManager.get(self.settings)
@@ -100,17 +103,58 @@ class BrowserProvider(EthicalProviderClient):
             raise RuntimeError("LIVE_PROVIDER_NOT_CONFIGURED") from exc
 
     async def fetch_product(self, external_product_id: str, location: ProviderLocation) -> dict[str, Any]:
+        """
+        FIX: Navigate to the actual product page (not the homepage) and attempt
+        to extract real stock/price data from the DOM. Falls back to unknown
+        gracefully when selectors don't match.
+        """
         manager = await BrowserManager.get(self.settings)
         try:
             async with manager.page() as page:
                 await self._set_location(page, location)
-                await page.goto("https://blinkit.com", wait_until="domcontentloaded")
-                await asyncio.sleep(self.settings.provider_base_delay_seconds)
+                # Navigate to the product page using the slug-style URL
+                product_url = f"https://blinkit.com/prn/{external_product_id}/prid/{external_product_id}"
+                await page.goto(product_url, wait_until="domcontentloaded")
+                await asyncio.sleep(self.settings.provider_base_delay_seconds + random.uniform(0, 0.5))
+
+                # Attempt to extract stock/price from common selectors (educational best-effort)
+                name = external_product_id
+                stock_status = "unknown"
+                price = None
+                mrp = None
+
+                try:
+                    name_el = page.locator("h1").first
+                    if await name_el.count():
+                        name = (await name_el.inner_text()).strip()[:255] or external_product_id
+                except Exception:
+                    pass
+
+                try:
+                    add_btn = page.locator("[data-testid='add-to-cart'], button:has-text('Add')")
+                    if await add_btn.count():
+                        stock_status = "in_stock"
+                    oos = page.locator(":text('Out of stock'), :text('Notify me')")
+                    if await oos.count():
+                        stock_status = "out_of_stock"
+                except Exception:
+                    pass
+
+                try:
+                    price_el = page.locator("[data-testid='product-price'], .Product__UpdatedPrice-sc")
+                    if await price_el.count():
+                        raw = (await price_el.first.inner_text()).replace("₹", "").replace(",", "").strip()
+                        price = float(raw) if raw else None
+                except Exception:
+                    pass
+
                 return {
                     "provider": "blinkit",
                     "external_product_id": external_product_id,
-                    "name": external_product_id,
-                    "stock_status": "unknown",
+                    "name": name,
+                    "stock_status": stock_status,
+                    "price": price,
+                    "mrp": mrp,
                     "_fetched_at": datetime.now(UTC).isoformat(),
                 }
         except BrowserProviderUnavailable as exc:
