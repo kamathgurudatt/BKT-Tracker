@@ -40,6 +40,14 @@ cp .env.example .env
 docker compose up --build
 ```
 
+## Repo sanity check
+
+Run the backend and auth-removal sanity check before merging deployment fixes:
+
+```bash
+./scripts/sanity_check.sh
+```
+
 Open API docs at <https://<your-railway-domain>.up.railway.app/docs>.
 
 ## Build or download the APK
