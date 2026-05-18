@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager, suppress
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -122,10 +123,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.mount("/static", StaticFiles(directory="backend/app/static"), name="static")
 
 # FIX: analytics router was missing from this list
 for router in (auth.router, locations.router, wishlists.router, tracking.router, analytics.router, debug.router, admin.router):
     app.include_router(router, prefix=settings.api_v1_prefix)
+
+
+@app.get("/app")
+async def web_console():
+    return RedirectResponse(url="/static/index.html", status_code=307)
 
 
 @app.get("/health/live")
