@@ -19,7 +19,7 @@ flowchart LR
 
 ## Backend features
 
-- JWT signup/login and authenticated user APIs.
+- Internal-user APIs for VPN/private-network deployments; password signup/login is intentionally removed.
 - Multi-location, wishlist, tracked product, history, analytics, and notification endpoints.
 - Async SQLAlchemy architecture with indexed PostgreSQL schema.
 - Celery scheduler and worker queue for periodic safe polling.
@@ -79,7 +79,7 @@ Provider classes live under `backend/app/providers/`. There is no mock inventory
 
 ## API collection
 
-Import `postman/blinkit-stock-sentinel.postman_collection.json` for common auth, search, tracking, and analytics requests.
+Import `postman/blinkit-stock-sentinel.postman_collection.json` for common internal-user, search, tracking, and analytics requests.
 
 ## Real data validation
 
@@ -88,4 +88,4 @@ See `docs/REAL_DATA_VALIDATION.md` for endpoint-template configuration, debug mo
 
 ## Cloud deployment
 
-This project is deployment-ready for Railway + Supabase PostgreSQL + Upstash Redis. See `docs/CLOUD_DEPLOYMENT.md` and `railway.json`.
+This project is deployment-ready for Railway + Supabase PostgreSQL + Upstash Redis. See `docs/CLOUD_DEPLOYMENT.md`, `docs/TROUBLESHOOTING_RAILWAY.md`, and `railway.json`.
