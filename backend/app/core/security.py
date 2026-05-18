@@ -1,9 +1,9 @@
 """Internal-user helpers.
 
-Password-based authentication has intentionally been removed from this internal
-VPN-only application. Request-scoped user resolution now creates or reuses a
-single service user so API routes can continue to scope data by ``user_id``
-without accepting, validating, or hashing passwords.
+App-level credential authentication has intentionally been removed from this
+internal VPN-only application. Request-scoped user resolution now creates or
+reuses a single service user so API routes can continue to scope data by
+``user_id`` without accepting or hashing user secrets.
 """
 
 from sqlalchemy import select

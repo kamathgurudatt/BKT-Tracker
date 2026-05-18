@@ -14,7 +14,7 @@ The backend previously exposed `/auth/signup`, `/auth/login`, and `/auth/token` 
 - Removed password hashing and JWT verification from the request dependency path.
 - Removed `passlib[bcrypt]` and `python-jose` from backend runtime requirements.
 - Removed `hashed_password` from the SQLAlchemy `User` model and bootstrap SQL schema.
-- Kept `/auth/me` as the only active auth endpoint. Deprecated password endpoints now return HTTP `410 Gone` and are hidden from OpenAPI.
+- Kept `/auth/me` as the only auth endpoint. Signup, login, and token endpoints are not registered.
 
 ### Railway / database migration steps
 

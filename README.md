@@ -19,18 +19,18 @@ flowchart LR
 
 ## Backend features
 
-- Internal-user APIs for VPN/private-network deployments; password signup/login is intentionally removed.
+- Internal-user APIs for VPN/private-network deployments; app-level credential screens are intentionally removed.
 - Multi-location, wishlist, tracked product, history, analytics, and notification endpoints.
 - Async SQLAlchemy architecture with indexed PostgreSQL schema.
 - Celery scheduler and worker queue for periodic safe polling.
-- Modular live providers for Blinkit, Zepto, and Instamart-style integrations with throttling, rotating headers, retries, exponential backoff, and no captcha/login bypass logic.
+- Modular live providers for Blinkit, Zepto, and Instamart-style integrations with throttling, rotating headers, retries, exponential backoff, and no captcha bypass logic.
 - Redis inventory-state hashing, duplicate-alert suppression, request logs, stock-change audit logs, and data-quality gates before notifications.
 - SlowAPI request throttling and environment-driven configuration.
 
 ## Mobile features
 
 - Flutter Material 3 Android app.
-- Splash, login/register, dashboard, product search, wishlist, product detail, location selector, analytics, notification center, settings, and developer debug monitoring screens.
+- Splash, internal-access, dashboard, product search, wishlist, product detail, location selector, analytics, notification center, settings, and developer debug monitoring screens.
 - Dark mode toggle, chart placeholder, push-notification permission declaration, and APK build path.
 
 ## Quick start
@@ -74,7 +74,7 @@ Provider classes live under `backend/app/providers/`. There is no mock inventory
 
 - `PROVIDER_BASE_DELAY_SECONDS` >= 1.5.
 - `PROVIDER_MAX_REQUESTS_PER_MINUTE` conservative.
-- No auth bypass, captcha bypass, hidden endpoint abuse, or aggressive parallelism.
+- No captcha bypass, hidden endpoint abuse, or aggressive parallelism.
 - Clear failure logging and opt-out controls.
 
 ## API collection

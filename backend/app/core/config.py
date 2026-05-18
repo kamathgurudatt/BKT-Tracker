@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     email_from: str | None = None
     smtp_url: str | None = None
     # Internal auth: this app is intended to run behind a VPN/private network.
-    # No passwords are accepted or stored; routes resolve to this service user.
+    # No app-level user secrets are accepted or stored; routes resolve to this service user.
     internal_auth_enabled: bool = True
     internal_device_email: str = "internal.device@blinkitsentinel.app"
     internal_device_full_name: str = "Internal Device User"
@@ -74,7 +74,7 @@ class Settings(BaseSettings):
             return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
         return raw
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore")
 
 
 @lru_cache

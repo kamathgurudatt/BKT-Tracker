@@ -12,7 +12,7 @@ settings = get_settings()
 async def get_current_user(db: AsyncSession = Depends(get_db)) -> User:
     """Resolve the internal service user for this VPN/private-network app.
 
-    Password and bearer-token authentication are intentionally disabled. Keep
+    App-level credential authentication is intentionally disabled. Keep
     this service behind Railway private networking, a corporate VPN, or another
     trusted ingress layer.
     """
