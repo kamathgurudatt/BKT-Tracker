@@ -45,7 +45,7 @@ The prototype must preserve and build on current repository behavior:
 
 ```mermaid
 flowchart LR
-    A[Flutter Mobile App] -->|JWT + REST| B[FastAPI Gateway]
+    A[Flutter Mobile App] -->|Private-network REST| B[FastAPI Gateway]
     B --> C[(PostgreSQL)]
     B --> D[(Redis Cache)]
     B --> E[Provider Adapters\nEthicalProviderClient]
