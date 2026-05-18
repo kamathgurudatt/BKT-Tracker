@@ -34,6 +34,19 @@ python -m compileall backend/app >/dev/null
 echo "==> Linting backend"
 ruff check backend/app
 
+
+echo "==> Verifying Celery imports and starts worker healthcheck"
+REDIS_URL=redis://localhost:6379/0 PYTHONPATH=backend python - <<'PY'
+from unittest.mock import patch
+
+from app.core.config import get_settings
+
+get_settings.cache_clear()
+with patch("app.workers.healthcheck.start_background_server") as start_healthcheck:
+    import app.workers.celery_app  # noqa: F401
+    start_healthcheck.assert_called_once()
+PY
+
 echo "==> Running backend tests"
 PYTHONPATH=backend pytest -q backend/tests
 

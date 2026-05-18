@@ -4,6 +4,7 @@ from urllib.parse import urlsplit, urlunsplit
 from celery import Celery
 
 from app.core.config import get_settings
+from app.workers.healthcheck import start_background_server
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
@@ -20,6 +21,8 @@ def _mask_redis_url(url: str) -> str:
 
 if not settings.redis_url:
     raise RuntimeError("REDIS_URL is required for Celery worker startup.")
+
+start_background_server()
 
 celery_app = Celery("sentinel", broker=settings.redis_url, backend=settings.redis_url, include=["app.workers.tasks"])
 celery_app.conf.beat_schedule = {
