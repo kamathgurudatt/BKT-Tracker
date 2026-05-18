@@ -9,7 +9,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.get("/me", response_model=UserRead)
 async def me(user: User = Depends(get_current_user)):
-    """Return the internal application user resolved by private-network access."""
+    """Return the application service user for this request."""
     return user
 
 
@@ -19,5 +19,5 @@ async def me(user: User = Depends(get_current_user)):
 async def password_auth_removed():
     raise HTTPException(
         status_code=status.HTTP_410_GONE,
-        detail="Password authentication has been removed. Use /auth/me behind the private network.",
+        detail="Password authentication has been removed. Use /auth/me.",
     )

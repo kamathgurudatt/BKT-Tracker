@@ -112,7 +112,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           contentPadding: EdgeInsets.zero,
                           leading: Icon(Icons.verified_user_outlined),
                           title: Text('No app credentials required'),
-                          subtitle: Text('Access is controlled by the private network/VPN. The app verifies the configured backend only.'),
+                          subtitle: Text('No password login is required. The app only verifies backend availability using /auth/me.'),
                         ),
                         const SizedBox(height: 8),
                         if (!_internalDeviceMode) ...[

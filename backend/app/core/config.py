@@ -37,9 +37,6 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     email_from: str | None = None
     smtp_url: str | None = None
-    # Internal auth: this app is intended to run behind a VPN/private network.
-    # No app-level user secrets are accepted or stored; routes resolve to this service user.
-    internal_auth_enabled: bool = True
     internal_device_email: str = "internal.device@blinkitsentinel.app"
     internal_device_full_name: str = "Internal Device User"
     internal_device_is_admin: bool = True
