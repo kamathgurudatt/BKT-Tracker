@@ -18,7 +18,7 @@ The backend previously exposed `/auth/signup`, `/auth/login`, and `/auth/token` 
 
 ### Railway / database migration steps
 
-Run `docs/sql/20260518_remove_password_auth.sql` once against the Railway PostgreSQL database after deploying the code:
+The backend now also performs this cleanup lazily when resolving the internal user, so existing Railway databases recover even if this SQL was not run manually. You can still run `docs/sql/20260518_remove_password_auth.sql` once as an explicit migration:
 
 ```sql
 ALTER TABLE users DROP COLUMN IF EXISTS hashed_password;
