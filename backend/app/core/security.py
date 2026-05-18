@@ -7,18 +7,12 @@ from passlib.context import CryptContext
 
 from app.core.config import get_settings
 
-# bcrypt is capped at 72 bytes — passwords longer than that are silently truncated
-# (or raise ValueError in bcrypt >= 4.0). We pre-hash with SHA-256 so that:
-#   - any password length is supported without truncation
-#   - the input to bcrypt is always a fixed 44-char base64 string (< 72 bytes)
-# This is the same strategy used by Django's BCryptSHA256PasswordHasher.
-
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 settings = get_settings()
 
 
 def _prehash(password: str) -> str:
-    """SHA-256 → base64 prehash so bcrypt never sees > 72 bytes."""
+    """SHA-256 prehash so bcrypt never sees > 72 bytes."""
     digest = hashlib.sha256(password.encode("utf-8")).digest()
     return base64.b64encode(digest).decode("ascii")  # always 44 chars
 
@@ -35,7 +29,6 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 
 def normalize_password_for_bcrypt(password: str) -> str:
-    """Kept for backward compatibility — no longer used internally."""
     return password
 
 
