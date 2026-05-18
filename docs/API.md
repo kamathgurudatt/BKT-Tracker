@@ -2,11 +2,10 @@
 
 Base URL: `/api/v1`
 
-## Auth
+## Internal access
 
-- `POST /auth/signup` creates a user.
-- `POST /auth/login` returns a JWT bearer token.
-- `GET /auth/me` returns current user profile.
+- `GET /auth/me` returns the configured internal user.
+- There are no signup, login, token, or password endpoints; access is controlled by the VPN/private network or upstream ingress.
 
 ## Locations and wishlists
 

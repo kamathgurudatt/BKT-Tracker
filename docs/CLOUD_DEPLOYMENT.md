@@ -16,7 +16,8 @@ This guide uses:
 3. Railway auto-detects `railway.json` + Dockerfile.
 4. Create two Railway services from same repo:
    - `api` with start command `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-   - `worker` with start command `celery -A app.workers.celery_app.celery_app worker --beat --loglevel=INFO`
+   - `worker` with start command `celery -A app.workers.celery_app.celery_app worker --pool=${CELERY_WORKER_POOL:-prefork} --concurrency=${CELERY_WORKER_CONCURRENCY:-1} --max-tasks-per-child=${CELERY_WORKER_MAX_TASKS_PER_CHILD:-25} --prefetch-multiplier=${CELERY_WORKER_PREFETCH_MULTIPLIER:-1} --loglevel=INFO`
+   - `beat` with start command `celery -A app.workers.celery_app.celery_app beat --loglevel=INFO`
 
 ## 2) Supabase PostgreSQL setup
 1. Create Supabase project.
@@ -37,9 +38,15 @@ Set these in both services unless noted:
 - `ENVIRONMENT=production`
 - `APP_NAME=Blinkit Stock Sentinel`
 - `API_V1_PREFIX=/api/v1`
-- `SECRET_KEY=<strong-random-string>`
 - `DATABASE_URL=<supabase asyncpg URL>`
 - `REDIS_URL=<upstash rediss URL>`
+- `INTERNAL_AUTH_ENABLED=true`
+- `INTERNAL_DEVICE_EMAIL=internal.device@blinkitsentinel.app`
+- `INTERNAL_DEVICE_FULL_NAME=Internal Device User`
+- `INTERNAL_DEVICE_IS_ADMIN=true`
+- `CELERY_WORKER_CONCURRENCY=1`
+- `CELERY_WORKER_MAX_TASKS_PER_CHILD=25`
+- `CELERY_WORKER_PREFETCH_MULTIPLIER=1`
 - `FORCE_HTTPS=true`
 - `TRUST_PROXY_HEADERS=true`
 - `CORS_ORIGINS=["https://<your-railway-domain>.up.railway.app"]`
@@ -56,8 +63,7 @@ Set these in both services unless noted:
 Railway provides TLS/HTTPS automatically via `*.up.railway.app` domains.
 
 ## 6) Health checks
-`GET /health` verifies app + PostgreSQL + Redis.
-Expect `{"status":"ok","database":true,"redis":true}`.
+`GET /health/live` verifies process liveness. `GET /health/ready` verifies PostgreSQL, Redis, and provider configuration.
 
 Railway applies the repository `railway.json` deploy healthcheck to both the `api` and `worker` services.
 The Celery worker process starts a small HTTP healthcheck listener on `$PORT` during worker startup, so the shared `/health/live` check succeeds even when Railway uses a dashboard-level worker start command instead of the repository Procfile.

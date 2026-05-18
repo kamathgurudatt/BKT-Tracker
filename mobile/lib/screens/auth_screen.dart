@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,9 +16,6 @@ class _AuthScreenState extends State<AuthScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final apiBaseUrl = TextEditingController();
-  final email = TextEditingController();
-  final password = TextEditingController();
-  bool register = false;
   bool loading = false;
   bool apiUrlEdited = false;
   String? error;
@@ -29,22 +24,20 @@ class _AuthScreenState extends State<AuthScreen> {
   void initState() {
     super.initState();
     if (_internalDeviceMode) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _autoLoginInternalDevice());
+      WidgetsBinding.instance.addPostFrameCallback((_) => _connect());
     }
   }
 
   @override
   void dispose() {
     apiBaseUrl.dispose();
-    email.dispose();
-    password.dispose();
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _connect() async {
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) {
-      setState(() => error = 'Please fix the highlighted fields.');
+    if (!_internalDeviceMode && !_formKey.currentState!.validate()) {
+      setState(() => error = 'Please fix the highlighted backend URL.');
       return;
     }
 
@@ -55,16 +48,12 @@ class _AuthScreenState extends State<AuthScreen> {
 
     try {
       final state = context.read<AppState>();
-      await state.updateApiBaseUrl(apiBaseUrl.text);
-      final api = state.api;
-      if (register) {
-        await api.signup(email.text.trim(), password.text, 'Blinkit Stock Sentinel User');
+      if (!_internalDeviceMode) {
+        await state.updateApiBaseUrl(apiBaseUrl.text);
       }
-      await api.login(email.text.trim(), password.text);
+      await state.api.currentUser();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(register ? 'Account created. Logged in successfully.' : 'Logged in successfully.')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connected to internal backend.')));
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
     } on ApiException catch (exception) {
@@ -73,27 +62,10 @@ class _AuthScreenState extends State<AuthScreen> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(exception.message)));
       }
     } catch (exception) {
-      final message = 'Authentication failed: $exception';
+      final message = 'Backend connection failed: $exception';
       if (mounted) {
         setState(() => error = message);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
-      }
-    } finally {
-      if (mounted) {
-        setState(() => loading = false);
-      }
-    }
-  }
-
-  Future<void> _autoLoginInternalDevice() async {
-    if (loading) return;
-    setState(() {
-      loading = true;
-      error = null;
-    });
-    try {
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/dashboard');
       }
     } finally {
       if (mounted) {
@@ -109,21 +81,6 @@ class _AuthScreenState extends State<AuthScreen> {
     if (uri == null || !uri.hasScheme || uri.host.isEmpty) return 'Enter a valid URL, for example http://192.168.1.10:8000/api/v1.';
     if (uri.scheme != 'http' && uri.scheme != 'https') return 'URL must start with http:// or https://.';
     if (!uri.path.endsWith('/api/v1')) return 'Backend URL should end with /api/v1.';
-    return null;
-  }
-
-  String? _validateEmail(String? value) {
-    final emailText = value?.trim() ?? '';
-    if (emailText.isEmpty) return 'Email is required.';
-    if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(emailText)) return 'Enter a valid email address.';
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    final passwordText = value ?? '';
-    if (passwordText.isEmpty) return 'Password is required.';
-    if (passwordText.length < 8) return 'Password must be at least 8 characters.';
-    if (utf8.encode(passwordText).length > 72) return 'Password must be 72 bytes or fewer.';
     return null;
   }
 
@@ -149,11 +106,15 @@ class _AuthScreenState extends State<AuthScreen> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          register ? 'Create account' : 'Welcome back',
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
+                        Text('Internal access', style: Theme.of(context).textTheme.headlineSmall),
                         const SizedBox(height: 16),
+                        const ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Icon(Icons.verified_user_outlined),
+                          title: Text('No app credentials required'),
+                          subtitle: Text('Access is controlled by the private network/VPN. The app verifies the configured backend only.'),
+                        ),
+                        const SizedBox(height: 8),
                         if (!_internalDeviceMode) ...[
                           TextFormField(
                             controller: apiBaseUrl,
@@ -167,51 +128,25 @@ class _AuthScreenState extends State<AuthScreen> {
                             validator: _validateApiBaseUrl,
                           ),
                           const SizedBox(height: 12),
-                        ],
-                        if (_internalDeviceMode) ...[
-                          const ListTile(
+                        ] else
+                          ListTile(
                             contentPadding: EdgeInsets.zero,
-                            leading: Icon(Icons.verified_user_outlined),
-                            title: Text('Internal device mode enabled'),
-                            subtitle: Text('Using preconfigured Railway backend and device account.'),
+                            leading: const Icon(Icons.cloud_done_outlined),
+                            title: const Text('Using managed backend'),
+                            subtitle: Text(stateApiBaseUrl),
                           ),
-                          const SizedBox(height: 8),
-                        ],
-                        if (!_internalDeviceMode) TextFormField(
-                          controller: email,
-                          decoration: const InputDecoration(labelText: 'Email', prefixIcon: Icon(Icons.email_outlined)),
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: const [AutofillHints.email],
-                          validator: _validateEmail,
-                        ),
-                        if (!_internalDeviceMode) const SizedBox(height: 12),
-                        if (!_internalDeviceMode) TextFormField(
-                          controller: password,
-                          decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline)),
-                          obscureText: true,
-                          autofillHints: const [AutofillHints.password],
-                          validator: _validatePassword,
-                        ),
                         if (error != null) ...[
                           const SizedBox(height: 12),
                           Text(error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
                         ],
                         const SizedBox(height: 16),
-                        if (!_internalDeviceMode) FilledButton(
-                          onPressed: loading ? null : _submit,
-                          child: loading
+                        FilledButton.icon(
+                          onPressed: loading ? null : _connect,
+                          icon: loading
                               ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                              : Text(register ? 'Register & Login' : 'Login'),
+                              : const Icon(Icons.verified_user_outlined),
+                          label: Text(loading ? 'Connecting…' : 'Continue'),
                         ),
-                        if (!_internalDeviceMode) TextButton(
-                          onPressed: loading ? null : () => setState(() => register = !register),
-                          child: Text(register ? 'Have an account?' : 'Create an account'),
-                        ),
-                        if (_internalDeviceMode && loading)
-                          const Padding(
-                            padding: EdgeInsets.only(top: 8),
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
                       ],
                     ),
                   ),

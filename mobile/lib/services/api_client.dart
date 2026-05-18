@@ -28,7 +28,6 @@ class ApiClient {
   ApiClient({String? baseUrl}) : baseUrl = normalizeBaseUrl(baseUrl ?? _defaultApiBaseUrl());
 
   String baseUrl;
-  String? token;
 
   static String normalizeBaseUrl(String value) {
     final trimmed = value.trim();
@@ -48,21 +47,14 @@ class ApiClient {
   void updateBaseUrl(String value) {
     final normalized = normalizeBaseUrl(value);
     baseUrl = isValidBaseUrl(normalized) ? normalized : _defaultApiBaseUrl();
-    token = null;
   }
 
-  Map<String, String> get _headers => {'Content-Type': 'application/json', if (token != null) 'Authorization': 'Bearer $token'};
+  Map<String, String> get _headers => const {'Content-Type': 'application/json'};
 
-  Future<void> login(String email, String password) async {
-    final response = await _send(() => http.post(Uri.parse('$baseUrl/auth/login'), headers: _headers, body: jsonEncode({'email': email, 'password': password})));
-    token = response['access_token'] as String?;
-    if (token == null || token!.isEmpty) {
-      throw const ApiException('Login response did not include an access token.');
-    }
-  }
-
-  Future<void> signup(String email, String password, String fullName) async {
-    await _send(() => http.post(Uri.parse('$baseUrl/auth/signup'), headers: _headers, body: jsonEncode({'email': email, 'password': password, 'full_name': fullName})));
+  Future<Map<String, dynamic>> currentUser() async {
+    final response = await _send(() => http.get(Uri.parse('$baseUrl/auth/me'), headers: _headers));
+    if (response is! Map<String, dynamic>) throw const ApiException('Current user response was not an object.');
+    return response;
   }
 
   Future<List<Product>> search(String query) async {

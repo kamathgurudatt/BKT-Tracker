@@ -21,8 +21,6 @@ services:
           type: redis
           name: blinkit-stock-redis
           property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
 
   - type: worker
     name: blinkit-stock-sentinel-worker
@@ -46,8 +44,6 @@ services:
           type: redis
           name: blinkit-stock-redis
           property: connectionString
-      - key: SECRET_KEY
-        sync: false
 
   # FIX: beat is now its own separate service
   - type: worker
@@ -68,8 +64,6 @@ services:
           type: redis
           name: blinkit-stock-redis
           property: connectionString
-      - key: SECRET_KEY
-        sync: false
 
 databases:
   - name: blinkit-stock-postgres
