@@ -57,6 +57,53 @@ class ApiClient {
     return response;
   }
 
+
+
+  Future<List<Map<String, dynamic>>> listLocations() async {
+    final response = await _send(() => http.get(Uri.parse('$baseUrl/locations'), headers: _headers));
+    if (response is! List) throw const ApiException('Locations response was not a list.');
+    return response.map((item) => (item as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<Map<String, dynamic>> createLocation({required String name, String? pincode}) async {
+    final response = await _send(() => http.post(Uri.parse('$baseUrl/locations'), headers: _headers, body: jsonEncode({'name': name, 'pincode': pincode}))); 
+    if (response is! Map<String, dynamic>) throw const ApiException('Create location response was not an object.');
+    return response;
+  }
+
+  Future<List<Map<String, dynamic>>> listWishlists() async {
+    final response = await _send(() => http.get(Uri.parse('$baseUrl/wishlists'), headers: _headers));
+    if (response is! List) throw const ApiException('Wishlists response was not a list.');
+    return response.map((item) => (item as Map).cast<String, dynamic>()).toList();
+  }
+
+  Future<Map<String, dynamic>> createWishlist({required String name, String? description}) async {
+    final response = await _send(() => http.post(Uri.parse('$baseUrl/wishlists'), headers: _headers, body: jsonEncode({'name': name, 'description': description}))); 
+    if (response is! Map<String, dynamic>) throw const ApiException('Create wishlist response was not an object.');
+    return response;
+  }
+
+  Future<Map<String, dynamic>> addTrackedItem({
+    required String provider,
+    required String externalProductId,
+    required String name,
+    String? imageUrl,
+    String? category,
+    int? wishlistId,
+    required List<int> locationIds,
+  }) async {
+    final response = await _send(() => http.post(Uri.parse('$baseUrl/tracking/items'), headers: _headers, body: jsonEncode({
+      'provider': provider,
+      'external_product_id': externalProductId,
+      'name': name,
+      'image_url': imageUrl,
+      'category': category,
+      'wishlist_id': wishlistId,
+      'location_ids': locationIds,
+    })));
+    if (response is! Map<String, dynamic>) throw const ApiException('Track item response was not an object.');
+    return response;
+  }
   Future<List<Product>> search(String query) async {
     final response = await _send(() => http.get(Uri.parse('$baseUrl/tracking/search?q=${Uri.encodeQueryComponent(query)}'), headers: _headers));
     if (response is! List) {
