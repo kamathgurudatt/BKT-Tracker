@@ -6,7 +6,7 @@ Use `docker compose up --build` for local education. Production deployments shou
 
 ## Environment variables
 
-Copy `.env.example` and replace `SECRET_KEY`, database credentials, Redis URL, SMTP settings, and FCM credentials. Never commit real secrets.
+Copy `.env.example` and replace database credentials, Redis URL, SMTP settings, and FCM credentials. Never commit real secrets.
 
 ## CI/CD
 

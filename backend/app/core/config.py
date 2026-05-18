@@ -9,9 +9,6 @@ class Settings(BaseSettings):
     app_name: str = "Blinkit Stock Sentinel"
     environment: str = "local"
     api_v1_prefix: str = "/api/v1"
-    secret_key: str = Field(default="change-me-in-production", min_length=16)
-    jwt_algorithm: str = "HS256"
-    access_token_expire_minutes: int = 60 * 24
     database_url: str = "postgresql+asyncpg://sentinel:sentinel@postgres:5432/sentinel"
     redis_url: str | None = None
     cors_origins: list[AnyHttpUrl] | list[str] = ["https://web-production-bd4d.up.railway.app"]
@@ -40,20 +37,19 @@ class Settings(BaseSettings):
     sentry_dsn: str | None = None
     email_from: str | None = None
     smtp_url: str | None = None
-    allow_internal_device_anonymous_auth: bool = False
+    # Internal auth: this app is intended to run behind a VPN/private network.
+    # No app-level user secrets are accepted or stored; routes resolve to this service user.
+    internal_auth_enabled: bool = True
     internal_device_email: str = "internal.device@blinkitsentinel.app"
     internal_device_full_name: str = "Internal Device User"
+    internal_device_is_admin: bool = True
     expose_internal_errors: bool = False
-    # FIX: make celery worker pool configurable (solo is not production-safe)
     celery_worker_pool: str = "prefork"
-
-    @field_validator("secret_key", mode="before")
-    @classmethod
-    def _normalize_secret_key_value(cls, value: str | None) -> str:
-        if value is None:
-            return "change-me-in-production"
-        trimmed = value.strip()
-        return trimmed or "change-me-in-production"
+    celery_worker_concurrency: int = 1
+    celery_worker_max_tasks_per_child: int = 25
+    celery_worker_prefetch_multiplier: int = 1
+    celery_task_time_limit_seconds: int = 600
+    celery_task_soft_time_limit_seconds: int = 540
 
     @field_validator("database_url", mode="before")
     @classmethod
@@ -78,7 +74,7 @@ class Settings(BaseSettings):
             return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, urlencode(query), parsed.fragment))
         return raw
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False, extra="ignore")
 
 
 @lru_cache
