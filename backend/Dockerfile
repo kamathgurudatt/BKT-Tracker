@@ -2,6 +2,8 @@ FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    MALLOC_ARENA_MAX=2 \
     PIP_NO_CACHE_DIR=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
@@ -19,7 +21,7 @@ RUN set -eu; \
         exit 1; \
     fi; \
     pip install -r "$REQUIREMENTS_PATH"; \
-    python -m playwright install chromium; \
+    python -m playwright install --with-deps chromium; \
     cp -R "$APP_PATH" /app/app
 
 EXPOSE 8000

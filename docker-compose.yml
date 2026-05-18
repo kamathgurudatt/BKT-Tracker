@@ -49,11 +49,20 @@ services:
   # Beat stalling no longer blocks task execution.
   worker:
     build: ./backend
-    command: celery -A app.workers.celery_app.celery_app worker --loglevel=INFO
+    command: >-
+      celery -A app.workers.celery_app.celery_app worker
+      --pool=$${CELERY_WORKER_POOL:-prefork}
+      --concurrency=$${CELERY_WORKER_CONCURRENCY:-1}
+      --max-tasks-per-child=$${CELERY_WORKER_MAX_TASKS_PER_CHILD:-25}
+      --prefetch-multiplier=$${CELERY_WORKER_PREFETCH_MULTIPLIER:-1}
+      --loglevel=INFO
     env_file: .env
     environment:
       WORKER_HEALTH_PORT: "8001"
       CELERY_WORKER_POOL: "prefork"
+      CELERY_WORKER_CONCURRENCY: "1"
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: "25"
+      CELERY_WORKER_PREFETCH_MULTIPLIER: "1"
     depends_on:
       postgres:
         condition: service_healthy

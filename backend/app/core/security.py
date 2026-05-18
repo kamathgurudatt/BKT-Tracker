@@ -1,37 +1,43 @@
-import base64
-import hashlib
-from datetime import UTC, datetime, timedelta
+"""Internal-user helpers.
 
-from jose import jwt
-from passlib.context import CryptContext
+App-level credential authentication has intentionally been removed from this
+internal VPN-only application. Request-scoped user resolution now creates or
+reuses a single service user so API routes can continue to scope data by
+``user_id`` without accepting or hashing user secrets.
+"""
+
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.models.entities import User, UserRole
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 settings = get_settings()
 
 
-def _prehash(password: str) -> str:
-    """SHA-256 prehash so bcrypt never sees > 72 bytes."""
-    digest = hashlib.sha256(password.encode("utf-8")).digest()
-    return base64.b64encode(digest).decode("ascii")  # always 44 chars
+async def get_or_create_internal_user(db: AsyncSession) -> User:
+    """Return the configured internal user, creating it on first use."""
+    user = await db.scalar(select(User).where(User.email == settings.internal_device_email, User.is_active.is_(True)))
+    desired_role = UserRole.ADMIN if settings.internal_device_is_admin else UserRole.USER
+    if user is None:
+        user = User(
+            email=settings.internal_device_email,
+            full_name=settings.internal_device_full_name,
+            role=desired_role,
+        )
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        return user
 
-
-def hash_password(password: str) -> str:
-    return pwd_context.hash(_prehash(password))
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    try:
-        return pwd_context.verify(_prehash(plain), hashed)
-    except Exception:
-        return False
-
-
-def normalize_password_for_bcrypt(password: str) -> str:
-    return password
-
-
-def create_access_token(subject: str) -> str:
-    expires = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
-    return jwt.encode({"sub": subject, "exp": expires}, settings.secret_key, algorithm=settings.jwt_algorithm)
+    changed = False
+    if user.full_name != settings.internal_device_full_name:
+        user.full_name = settings.internal_device_full_name
+        changed = True
+    if user.role != desired_role:
+        user.role = desired_role
+        changed = True
+    if changed:
+        await db.commit()
+        await db.refresh(user)
+    return user
