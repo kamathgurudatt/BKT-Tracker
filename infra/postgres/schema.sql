@@ -10,7 +10,6 @@ CREATE TYPE IF NOT EXISTS requeststatus AS ENUM ('success', 'failure');
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   email VARCHAR(320) NOT NULL UNIQUE,
-  hashed_password VARCHAR(255) NOT NULL,
   full_name VARCHAR(120),
   role userrole NOT NULL DEFAULT 'user',
   is_active BOOLEAN NOT NULL DEFAULT TRUE,
