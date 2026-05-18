@@ -22,7 +22,17 @@ jobs:
           pip install -r backend/requirements.txt
           pip install -r requirements-dev.txt
       - name: Backend sanity check
-        run: ./scripts/sanity_check.sh
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -f ./scripts/sanity_check.sh ]]; then
+            bash ./scripts/sanity_check.sh
+          else
+            echo "scripts/sanity_check.sh not found; running inline backend sanity fallback" >&2
+            python -m compileall backend/app >/dev/null
+            ruff check backend/app
+            PYTHONPATH=backend pytest -q backend/tests
+          fi
 
   mobile:
     runs-on: ubuntu-latest
