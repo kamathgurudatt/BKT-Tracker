@@ -64,7 +64,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           Wrap(children: _locations.map((l){ final id=l['id'] as int; return FilterChip(label: Text(l['name'].toString()), selected: _selectedLocations.contains(id), onSelected: (v)=>setState(()=>v?_selectedLocations.add(id):_selectedLocations.remove(id))); }).toList()),
         const SizedBox(height: 8),
         DropdownButtonFormField<int>(
-          value: _wishlistId,
+          initialValue: _wishlistId,
           hint: const Text('Optional wishlist'),
           items: _wishlists.map((w)=>DropdownMenuItem<int>(value: w['id'] as int, child: Text(w['name'].toString()))).toList(),
           onChanged: (v)=>setState(()=>_wishlistId=v),
